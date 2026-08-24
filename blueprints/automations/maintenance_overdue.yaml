@@ -1,0 +1,55 @@
+blueprint:
+  name: Tesla Maintenance - maintenance overdue
+  description: >-
+    Alerts when a tracked maintenance item goes overdue, and repeats the
+    reminder daily until it is dealt with. Overdue amounts come from your own
+    schedules - nothing is estimated.
+  domain: automation
+  input:
+    overdue_sensor:
+      name: Maintenance overdue binary sensor
+      selector:
+        entity:
+          filter:
+            domain: binary_sensor
+            integration: tesla_maintenance
+    notify_action:
+      name: Notification action
+      description: For example notify.mobile_app_your_phone
+      default: persistent_notification.create
+      selector:
+        text:
+    reminder_time:
+      name: Daily reminder time
+      description: A reminder is sent at this time while anything is overdue.
+      default: "09:00:00"
+      selector:
+        time:
+mode: single
+triggers:
+  - trigger: state
+    entity_id: !input overdue_sensor
+    from: "off"
+    to: "on"
+  - trigger: time
+    at: !input reminder_time
+conditions:
+  - condition: state
+    entity_id: !input overdue_sensor
+    state: "on"
+actions:
+  - variables:
+      overdue_entity: !input overdue_sensor
+  - variables:
+      items: "{{ state_attr(overdue_entity, 'overdue') | default([], true) }}"
+  - action: !input notify_action
+    data:
+      title: Tesla Maintenance
+      message: >-
+        {% if items | count == 0 %}Maintenance is overdue.
+        {% else %}{% for item in items %}{{ item.item_name }} is overdue
+        {%- if item.miles_remaining is not none and item.miles_remaining < 0 %}
+        by {{ (item.miles_remaining * -1) | round(0) }} miles
+        {%- elif item.days_remaining is not none and item.days_remaining < 0 %}
+        by {{ item.days_remaining * -1 }} days{% endif %}.
+        {% endfor %}{% endif %}

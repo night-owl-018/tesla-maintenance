@@ -1,0 +1,21 @@
+name: HACS validation
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+
+jobs:
+  hacs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hacs/action@main
+        with:
+          category: integration
+          # Remove `ignore` once the repository has a description, topics and
+          # a published release on GitHub.
+          ignore: brands

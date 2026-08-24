@@ -1,0 +1,42 @@
+blueprint:
+  name: Tesla Maintenance - maintenance due
+  description: >-
+    Sends a notification when any tracked maintenance item becomes due or due
+    soon. Item names, remaining mileage and remaining days come straight from
+    your own maintenance schedules - nothing is estimated.
+  domain: automation
+  input:
+    due_sensor:
+      name: Maintenance due binary sensor
+      selector:
+        entity:
+          filter:
+            domain: binary_sensor
+            integration: tesla_maintenance
+    notify_action:
+      name: Notification action
+      description: For example notify.mobile_app_your_phone
+      default: persistent_notification.create
+      selector:
+        text:
+mode: single
+triggers:
+  - trigger: state
+    entity_id: !input due_sensor
+    from: "off"
+    to: "on"
+conditions: []
+actions:
+  - variables:
+      items: "{{ state_attr(trigger.entity_id, 'due') | default([], true) }}"
+  - action: !input notify_action
+    data:
+      title: Tesla Maintenance
+      message: >-
+        {% if items | count == 0 %}Maintenance is due.
+        {% else %}{% for item in items %}{{ item.item_name }} is due
+        {%- if item.miles_remaining is not none %} in approximately
+        {{ item.miles_remaining | round(0) }} miles{% endif %}
+        {%- if item.days_remaining is not none %}{% if item.miles_remaining is not none %} or{% else %} in{% endif %}
+        {{ item.days_remaining }} days{% endif %}.
+        {% endfor %}{% endif %}

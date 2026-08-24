@@ -1,0 +1,35 @@
+name: Bug report
+description: Something is not working correctly
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please do not paste your VIN, tokens, or precise location data.
+  - type: input
+    id: version
+    attributes:
+      label: Integration version
+    validations:
+      required: true
+  - type: input
+    id: ha_version
+    attributes:
+      label: Home Assistant version
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant log output
+      render: shell

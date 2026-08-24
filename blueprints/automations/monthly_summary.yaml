@@ -1,0 +1,85 @@
+blueprint:
+  name: Tesla Maintenance - monthly summary
+  description: >-
+    Sends a summary on the 1st of each month containing total maintenance cost,
+    upcoming maintenance, overdue maintenance and the most recent service.
+    Empty sections say so rather than showing invented figures.
+  domain: automation
+  input:
+    health_sensor:
+      name: Maintenance health sensor
+      selector:
+        entity:
+          filter:
+            domain: sensor
+            integration: tesla_maintenance
+    cost_sensor:
+      name: Total maintenance cost sensor
+      selector:
+        entity:
+          filter:
+            domain: sensor
+            integration: tesla_maintenance
+    year_cost_sensor:
+      name: Cost this year sensor
+      selector:
+        entity:
+          filter:
+            domain: sensor
+            integration: tesla_maintenance
+    last_service_sensor:
+      name: Last service date sensor
+      selector:
+        entity:
+          filter:
+            domain: sensor
+            integration: tesla_maintenance
+    notify_action:
+      name: Notification action
+      default: persistent_notification.create
+      selector:
+        text:
+    send_time:
+      name: Send time
+      default: "09:00:00"
+      selector:
+        time:
+mode: single
+triggers:
+  - trigger: time
+    at: !input send_time
+conditions:
+  - condition: template
+    value_template: "{{ now().day == 1 }}"
+actions:
+  - variables:
+      health_entity: !input health_sensor
+      cost_entity: !input cost_sensor
+      year_cost_entity: !input year_cost_sensor
+      last_service_entity: !input last_service_sensor
+  - variables:
+      schedules: "{{ state_attr(health_entity, 'schedules') | default([], true) }}"
+  - action: !input notify_action
+    data:
+      title: Tesla Maintenance - monthly summary
+      message: >-
+        {% set upcoming = schedules | rejectattr('status', 'eq', 'OK')
+           | rejectattr('status', 'eq', 'DISABLED') | list %}
+        {% set overdue = schedules | selectattr('status', 'eq', 'OVERDUE') | list %}
+        Health: {{ states(health_entity) }}
+
+        Total spent: {{ states(cost_entity) }}
+        This year: {{ states(year_cost_entity) }}
+
+        Upcoming:
+        {% if upcoming | count == 0 %}Nothing upcoming.
+        {% else %}{% for item in upcoming %}- {{ item.item_name }} ({{ item.status }})
+        {% endfor %}{% endif %}
+
+        Overdue:
+        {% if overdue | count == 0 %}Nothing overdue.
+        {% else %}{% for item in overdue %}- {{ item.item_name }}
+        {% endfor %}{% endif %}
+
+        Most recent service: {{ states(last_service_entity) }}
+        {{ state_attr(last_service_entity, 'title') | default('', true) }}

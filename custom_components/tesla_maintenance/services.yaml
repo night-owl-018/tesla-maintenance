@@ -1,0 +1,675 @@
+add_service_record:
+  fields:
+    entry_id: &id001
+      required: false
+      example: 01J000000000000000000000
+      selector:
+        text: null
+    vehicle_id: &id002
+      required: false
+      example: 1
+      selector:
+        number:
+          min: 1
+          max: 9999
+          mode: box
+    service_date:
+      required: false
+      example: '2026-08-20'
+      selector:
+        date: null
+    mileage:
+      required: false
+      example: 42580
+      selector:
+        number:
+          min: 0
+          max: 2000000
+          mode: box
+    title:
+      required: false
+      example: Annual service
+      selector:
+        text: null
+    description:
+      required: false
+      selector:
+        text:
+          multiline: true
+    service_provider:
+      required: false
+      example: Tesla Service Center
+      selector:
+        text: null
+    location:
+      required: false
+      selector:
+        text: null
+    labor_cost:
+      required: false
+      selector:
+        number:
+          min: 0
+          max: 100000
+          step: 0.01
+          mode: box
+    parts_cost:
+      required: false
+      selector:
+        number:
+          min: 0
+          max: 100000
+          step: 0.01
+          mode: box
+    total_cost:
+      required: false
+      selector:
+        number:
+          min: 0
+          max: 100000
+          step: 0.01
+          mode: box
+    notes:
+      required: false
+      example: Technician recommended checking alignment.
+      selector:
+        text:
+          multiline: true
+    items:
+      required: false
+      example: '[{"name": "Tire Rotation", "category": "Tires", "cost": 65}]'
+      selector:
+        object: null
+update_service_record:
+  fields:
+    entry_id: *id001
+    vehicle_id: *id002
+    service_record_id:
+      required: true
+      selector:
+        number:
+          min: 1
+          max: 999999
+          mode: box
+    service_date:
+      required: false
+      selector:
+        date: null
+    mileage:
+      required: false
+      selector:
+        number:
+          min: 0
+          max: 2000000
+          mode: box
+    title:
+      required: false
+      selector:
+        text: null
+    description:
+      required: false
+      selector:
+        text:
+          multiline: true
+    service_provider:
+      required: false
+      selector:
+        text: null
+    location:
+      required: false
+      selector:
+        text: null
+    labor_cost:
+      required: false
+      selector:
+        number:
+          min: 0
+          max: 100000
+          step: 0.01
+          mode: box
+    parts_cost:
+      required: false
+      selector:
+        number:
+          min: 0
+          max: 100000
+          step: 0.01
+          mode: box
+    total_cost:
+      required: false
+      selector:
+        number:
+          min: 0
+          max: 100000
+          step: 0.01
+          mode: box
+    notes:
+      required: false
+      selector:
+        text:
+          multiline: true
+delete_service_record:
+  fields:
+    entry_id: *id001
+    vehicle_id: *id002
+    service_record_id:
+      required: true
+      selector:
+        number:
+          min: 1
+          max: 999999
+          mode: box
+add_maintenance_item:
+  fields:
+    entry_id: *id001
+    vehicle_id: *id002
+    name:
+      required: true
+      example: Frunk strut replacement
+      selector:
+        text: null
+    category:
+      required: false
+      example: Exterior
+      selector:
+        text: null
+    service_record_id:
+      required: false
+      selector:
+        number:
+          min: 1
+          max: 999999
+          mode: box
+    mileage:
+      required: false
+      selector:
+        number:
+          min: 0
+          max: 2000000
+          mode: box
+    date_completed:
+      required: false
+      selector:
+        date: null
+    cost:
+      required: false
+      selector:
+        number:
+          min: 0
+          max: 100000
+          step: 0.01
+          mode: box
+    service_provider:
+      required: false
+      selector:
+        text: null
+    notes:
+      required: false
+      selector:
+        text:
+          multiline: true
+    is_custom:
+      required: false
+      default: true
+      selector:
+        boolean: null
+    create_schedule:
+      required: false
+      default: false
+      selector:
+        boolean: null
+    interval_miles:
+      required: false
+      example: 6250
+      selector:
+        number:
+          min: 0
+          max: 200000
+          mode: box
+    interval_days:
+      required: false
+      example: 730
+      selector:
+        number:
+          min: 0
+          max: 3650
+          mode: box
+complete_maintenance:
+  fields:
+    entry_id: *id001
+    vehicle_id: *id002
+    schedule_id:
+      required: false
+      selector:
+        number:
+          min: 1
+          max: 999999
+          mode: box
+    name:
+      required: false
+      selector:
+        text: null
+    service_date:
+      required: false
+      selector:
+        date: null
+    mileage:
+      required: false
+      selector:
+        number:
+          min: 0
+          max: 2000000
+          mode: box
+    cost:
+      required: false
+      selector:
+        number:
+          min: 0
+          max: 100000
+          step: 0.01
+          mode: box
+    service_provider:
+      required: false
+      selector:
+        text: null
+    notes:
+      required: false
+      selector:
+        text:
+          multiline: true
+    create_service_record:
+      required: false
+      default: true
+      selector:
+        boolean: null
+add_schedule:
+  fields:
+    entry_id: *id001
+    vehicle_id: *id002
+    name:
+      required: true
+      example: Tire Rotation
+      selector:
+        text: null
+    category:
+      required: false
+      selector:
+        text: null
+    interval_miles:
+      required: false
+      selector:
+        number:
+          min: 0
+          max: 200000
+          mode: box
+    interval_days:
+      required: false
+      selector:
+        number:
+          min: 0
+          max: 3650
+          mode: box
+    source:
+      required: false
+      default: User Defined
+      selector:
+        select:
+          options:
+          - Default
+          - User Defined
+          - Tesla Recommendation
+    notes:
+      required: false
+      selector:
+        text:
+          multiline: true
+    last_service_date:
+      required: false
+      selector:
+        date: null
+    last_service_mileage:
+      required: false
+      selector:
+        number:
+          min: 0
+          max: 2000000
+          mode: box
+update_schedule:
+  fields:
+    entry_id: *id001
+    vehicle_id: *id002
+    schedule_id:
+      required: true
+      selector:
+        number:
+          min: 1
+          max: 999999
+          mode: box
+    name:
+      required: false
+      selector:
+        text: null
+    category:
+      required: false
+      selector:
+        text: null
+    interval_miles:
+      required: false
+      selector:
+        number:
+          min: 0
+          max: 200000
+          mode: box
+    interval_days:
+      required: false
+      selector:
+        number:
+          min: 0
+          max: 3650
+          mode: box
+    enabled:
+      required: false
+      selector:
+        boolean: null
+    notes:
+      required: false
+      selector:
+        text:
+          multiline: true
+delete_schedule:
+  fields:
+    entry_id: *id001
+    vehicle_id: *id002
+    schedule_id:
+      required: true
+      selector:
+        number:
+          min: 1
+          max: 999999
+          mode: box
+reset_maintenance_schedule:
+  fields:
+    entry_id: *id001
+    vehicle_id: *id002
+    schedule_id:
+      required: true
+      selector:
+        number:
+          min: 1
+          max: 999999
+          mode: box
+    service_date:
+      required: false
+      selector:
+        date: null
+    mileage:
+      required: false
+      selector:
+        number:
+          min: 0
+          max: 2000000
+          mode: box
+add_attachment:
+  fields:
+    entry_id: *id001
+    vehicle_id: *id002
+    file_path:
+      required: true
+      example: /media/receipts/tire_invoice.pdf
+      selector:
+        text: null
+    service_record_id:
+      required: false
+      selector:
+        number:
+          min: 1
+          max: 999999
+          mode: box
+add_category:
+  fields:
+    entry_id: *id001
+    vehicle_id: *id002
+    name:
+      required: true
+      example: Ceramic Coating
+      selector:
+        text: null
+add_tire_record:
+  fields:
+    entry_id: *id001
+    vehicle_id: *id002
+    position:
+      required: true
+      selector:
+        select:
+          options:
+          - Front Left
+          - Front Right
+          - Rear Left
+          - Rear Right
+    brand:
+      required: false
+      selector:
+        text: null
+    model:
+      required: false
+      selector:
+        text: null
+    size:
+      required: false
+      selector:
+        text: null
+    installation_date:
+      required: false
+      selector:
+        date: null
+    installation_mileage:
+      required: false
+      selector:
+        number:
+          min: 0
+          max: 2000000
+          mode: box
+    current_tread_depth:
+      required: false
+      selector:
+        number:
+          min: 0
+          max: 20
+          step: 0.5
+          mode: box
+    original_tread_depth:
+      required: false
+      selector:
+        number:
+          min: 0
+          max: 20
+          step: 0.5
+          mode: box
+    dot_date:
+      required: false
+      selector:
+        text: null
+    purchase_cost:
+      required: false
+      selector:
+        number:
+          min: 0
+          max: 10000
+          step: 0.01
+          mode: box
+    replacement_cost:
+      required: false
+      selector:
+        number:
+          min: 0
+          max: 10000
+          step: 0.01
+          mode: box
+    notes:
+      required: false
+      selector:
+        text:
+          multiline: true
+add_brake_record:
+  fields:
+    entry_id: *id001
+    vehicle_id: *id002
+    axle:
+      required: true
+      selector:
+        select:
+          options:
+          - Front
+          - Rear
+    condition:
+      required: false
+      default: Good
+      selector:
+        select:
+          options:
+          - Good
+          - Fair
+          - Needs Service
+          - Replace
+    pad_thickness:
+      required: false
+      selector:
+        number:
+          min: 0
+          max: 30
+          step: 0.1
+          mode: box
+    rotor_condition:
+      required: false
+      selector:
+        text: null
+    inspection_date:
+      required: false
+      selector:
+        date: null
+    inspection_mileage:
+      required: false
+      selector:
+        number:
+          min: 0
+          max: 2000000
+          mode: box
+    notes:
+      required: false
+      selector:
+        text:
+          multiline: true
+set_mileage:
+  fields:
+    entry_id: *id001
+    vehicle_id: *id002
+    mileage:
+      required: true
+      selector:
+        number:
+          min: 0
+          max: 2000000
+          mode: box
+search_service_records:
+  fields:
+    entry_id: *id001
+    vehicle_id: *id002
+    query:
+      required: false
+      example: alignment
+      selector:
+        text: null
+    year:
+      required: false
+      selector:
+        number:
+          min: 1990
+          max: 2100
+          mode: box
+    category:
+      required: false
+      selector:
+        text: null
+    service_provider:
+      required: false
+      selector:
+        text: null
+    name:
+      required: false
+      selector:
+        text: null
+    min_cost:
+      required: false
+      selector:
+        number:
+          min: 0
+          max: 100000
+          step: 0.01
+          mode: box
+    max_cost:
+      required: false
+      selector:
+        number:
+          min: 0
+          max: 100000
+          step: 0.01
+          mode: box
+    sort:
+      required: false
+      default: newest
+      selector:
+        select:
+          options:
+          - newest
+          - oldest
+          - highest_cost
+          - lowest_cost
+          - highest_mileage
+          - lowest_mileage
+    limit:
+      required: false
+      default: 50
+      selector:
+        number:
+          min: 1
+          max: 500
+          mode: box
+export_data:
+  fields:
+    entry_id: *id001
+    vehicle_id: *id002
+    format:
+      required: false
+      default: json
+      selector:
+        select:
+          options:
+          - json
+          - csv
+    all_vehicles:
+      required: false
+      default: false
+      selector:
+        boolean: null
+import_data:
+  fields:
+    entry_id: *id001
+    vehicle_id: *id002
+    file_path:
+      required: true
+      example: /config/tesla_maintenance/exports/tesla_maintenance_20260820_101500.json
+      selector:
+        text: null
+    mode:
+      required: false
+      default: merge
+      selector:
+        select:
+          options:
+          - merge
+          - skip_duplicates
+backup_database:
+  fields:
+    entry_id: *id001
+    vehicle_id: *id002

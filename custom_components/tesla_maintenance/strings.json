@@ -1,0 +1,433 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Vehicle Information",
+        "description": "Tell the Maintenance Tracker about your vehicle. Only the name is required. The VIN is optional and is never logged or shared.",
+        "data": {
+          "vehicle_name": "Vehicle name",
+          "vehicle_model": "Model (for example Model Y)",
+          "vehicle_year": "Year",
+          "vin": "VIN (optional)",
+          "purchase_date": "Purchase date (optional)"
+        }
+      },
+      "tesla": {
+        "title": "TESLA VEHICLE INTEGRATION",
+        "description": "This section connects the Maintenance Tracker to your EXISTING Tesla Home Assistant entities.\n\nThe Maintenance Tracker does NOT connect directly to Tesla.\n\nYour Tesla must already be configured in Home Assistant.\n\nSelect the Tesla entities you want the Maintenance Tracker to use.\n\nOnly the odometer is required, and you can choose Manual Mileage instead. Every other entity is optional - the integration works fine without them.",
+        "data": {
+          "mileage_source": "Mileage source",
+          "odometer_entity": "Current odometer (required for the Tesla entity source)",
+          "manual_mileage": "Current mileage (required for Manual Mileage)",
+          "battery_level_entity": "Battery level (optional)",
+          "battery_range_entity": "Battery range (optional)",
+          "charging_state_entity": "Charging state (optional)",
+          "vehicle_state_entity": "Vehicle state (optional)",
+          "location_entity": "Location (optional)",
+          "latitude_entity": "Latitude (optional)",
+          "longitude_entity": "Longitude (optional)",
+          "climate_state_entity": "Climate state (optional)",
+          "tpms_front_left_entity": "Tire pressure - front left (optional)",
+          "tpms_front_right_entity": "Tire pressure - front right (optional)",
+          "tpms_rear_left_entity": "Tire pressure - rear left (optional)",
+          "tpms_rear_right_entity": "Tire pressure - rear right (optional)"
+        }
+      },
+      "maintenance": {
+        "title": "Maintenance Settings",
+        "description": "Choose units, currency and how far ahead you want to be warned. Starter schedules are this integration's own defaults - they are not official Tesla requirements, and you can edit or delete them at any time.",
+        "data": {
+          "distance_unit": "Distance unit",
+          "currency": "Currency",
+          "warn_miles": "Warn this many miles/km before a service is due",
+          "warn_days": "Warn this many days before a service is due",
+          "create_default_schedules": "Create starter maintenance schedules"
+        }
+      },
+      "notifications": {
+        "title": "Notification Settings",
+        "description": "Maintenance alerts are sent when an item becomes due or overdue. Leave the notify service blank to use Home Assistant persistent notifications.",
+        "data": {
+          "notifications_enabled": "Enable notifications",
+          "notify_service": "Notify service (for example notify.mobile_app_phone)",
+          "notify_on_due": "Notify when maintenance becomes due",
+          "notify_on_overdue": "Notify when maintenance becomes overdue"
+        }
+      }
+    },
+    "error": {
+      "odometer_required": "Select an odometer entity, or choose Manual Mileage as the mileage source.",
+      "manual_mileage_required": "Enter the current mileage, or choose the Tesla entity source."
+    },
+    "abort": {
+      "already_configured": "This vehicle is already set up."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Tesla Maintenance Tracker",
+        "description": "Changing these settings never deletes maintenance records, notes, costs or attachments.",
+        "menu_options": {
+          "vehicle": "Vehicle information",
+          "tesla": "Tesla entity mapping",
+          "maintenance": "Maintenance settings",
+          "notifications": "Notification settings"
+        }
+      },
+      "vehicle": {
+        "title": "Vehicle Information",
+        "data": {
+          "vehicle_name": "Vehicle name",
+          "vehicle_model": "Model",
+          "vehicle_year": "Year",
+          "vin": "VIN (optional)",
+          "purchase_date": "Purchase date (optional)"
+        }
+      },
+      "tesla": {
+        "title": "TESLA VEHICLE INTEGRATION",
+        "description": "Change which existing Home Assistant entities the Maintenance Tracker reads. This does NOT connect to Tesla, and changing a mapping never affects your service history, notes, costs or attachments.",
+        "data": {
+          "mileage_source": "Mileage source",
+          "odometer_entity": "Current odometer",
+          "manual_mileage": "Current mileage (manual)",
+          "battery_level_entity": "Battery level",
+          "battery_range_entity": "Battery range",
+          "charging_state_entity": "Charging state",
+          "vehicle_state_entity": "Vehicle state",
+          "location_entity": "Location",
+          "latitude_entity": "Latitude",
+          "longitude_entity": "Longitude",
+          "climate_state_entity": "Climate state",
+          "tpms_front_left_entity": "Tire pressure - front left",
+          "tpms_front_right_entity": "Tire pressure - front right",
+          "tpms_rear_left_entity": "Tire pressure - rear left",
+          "tpms_rear_right_entity": "Tire pressure - rear right"
+        }
+      },
+      "maintenance": {
+        "title": "Maintenance Settings",
+        "data": {
+          "distance_unit": "Distance unit",
+          "currency": "Currency",
+          "warn_miles": "Mileage warning threshold",
+          "warn_days": "Day warning threshold",
+          "create_default_schedules": "Create starter maintenance schedules"
+        }
+      },
+      "notifications": {
+        "title": "Notification Settings",
+        "data": {
+          "notifications_enabled": "Enable notifications",
+          "notify_service": "Notify service",
+          "notify_on_due": "Notify when maintenance becomes due",
+          "notify_on_overdue": "Notify when maintenance becomes overdue"
+        }
+      }
+    },
+    "error": {
+      "odometer_required": "Select an odometer entity, or choose Manual Mileage as the mileage source.",
+      "manual_mileage_required": "Enter the current mileage, or choose the Tesla entity source."
+    }
+  },
+  "selector": {
+    "mileage_source": {
+      "options": {
+        "tesla_entity": "Tesla Home Assistant entity",
+        "manual": "Manual mileage"
+      }
+    },
+    "distance_unit": {
+      "options": {
+        "mi": "Miles",
+        "km": "Kilometers"
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "current_mileage": { "name": "Current mileage" },
+      "total_maintenance_cost": { "name": "Total maintenance cost" },
+      "maintenance_cost_this_year": { "name": "Maintenance cost this year" },
+      "last_service_date": { "name": "Last service date" },
+      "last_service_mileage": { "name": "Last service mileage" },
+      "next_service_mileage": { "name": "Next service mileage" },
+      "miles_until_service": { "name": "Distance until service" },
+      "days_until_service": { "name": "Days until service" },
+      "maintenance_items_due": { "name": "Maintenance items due" },
+      "maintenance_items_overdue": { "name": "Maintenance items overdue" },
+      "total_service_records": { "name": "Total service records" },
+      "average_annual_maintenance_cost": { "name": "Average annual maintenance cost" },
+      "cost_per_mile": { "name": "Cost per mile" },
+      "maintenance_health": { "name": "Maintenance health" },
+      "tire_condition": { "name": "Tire condition" },
+      "brake_condition": { "name": "Brake condition" },
+      "battery_condition": { "name": "Battery condition" },
+      "telemetry_status": { "name": "Tesla telemetry" }
+    },
+    "binary_sensor": {
+      "maintenance_due": { "name": "Maintenance due" },
+      "maintenance_overdue": { "name": "Maintenance overdue" },
+      "tire_service_due": { "name": "Tire service due" },
+      "brake_service_due": { "name": "Brake service due" },
+      "telemetry_unavailable": { "name": "Tesla telemetry connected" }
+    },
+    "button": {
+      "export_json": { "name": "Export JSON" },
+      "export_csv": { "name": "Export CSV" },
+      "backup_database": { "name": "Back up database" },
+      "refresh": { "name": "Refresh maintenance data" }
+    },
+    "number": {
+      "manual_mileage": { "name": "Manual mileage" }
+    },
+    "calendar": {
+      "maintenance": { "name": "Upcoming maintenance" }
+    }
+  },
+  "services": {
+    "add_service_record": {
+      "name": "Add service record",
+      "description": "Adds a service record, including notes and any maintenance items covered.",
+      "fields": {
+        "entry_id": { "name": "Entry ID", "description": "Config entry to target. Optional when only one vehicle is configured." },
+        "vehicle_id": { "name": "Vehicle ID", "description": "Database vehicle id to target." },
+        "service_date": { "name": "Date", "description": "Service date (YYYY-MM-DD). Defaults to today." },
+        "mileage": { "name": "Mileage", "description": "Odometer reading at the time of service." },
+        "title": { "name": "Title", "description": "Short summary of the visit." },
+        "description": { "name": "Description", "description": "Longer description of the work." },
+        "service_provider": { "name": "Service provider", "description": "Who performed the work." },
+        "location": { "name": "Location", "description": "Where the work was performed." },
+        "labor_cost": { "name": "Labor cost", "description": "Labor portion of the cost." },
+        "parts_cost": { "name": "Parts cost", "description": "Parts portion of the cost." },
+        "total_cost": { "name": "Total cost", "description": "Total cost. Calculated from labor plus parts when omitted." },
+        "notes": { "name": "Notes", "description": "Free-form notes. Searchable and included in exports." },
+        "items": { "name": "Items serviced", "description": "List of items, each with name, category, notes, cost and is_custom." }
+      }
+    },
+    "update_service_record": {
+      "name": "Update service record",
+      "description": "Updates fields on an existing service record, including its notes.",
+      "fields": {
+        "entry_id": { "name": "Entry ID", "description": "Config entry to target." },
+        "vehicle_id": { "name": "Vehicle ID", "description": "Database vehicle id to target." },
+        "service_record_id": { "name": "Service record ID", "description": "Record to update." },
+        "service_date": { "name": "Date", "description": "New service date." },
+        "mileage": { "name": "Mileage", "description": "New mileage." },
+        "title": { "name": "Title", "description": "New title." },
+        "description": { "name": "Description", "description": "New description." },
+        "service_provider": { "name": "Service provider", "description": "New provider." },
+        "location": { "name": "Location", "description": "New location." },
+        "labor_cost": { "name": "Labor cost", "description": "New labor cost." },
+        "parts_cost": { "name": "Parts cost", "description": "New parts cost." },
+        "total_cost": { "name": "Total cost", "description": "New total cost." },
+        "notes": { "name": "Notes", "description": "New notes." }
+      }
+    },
+    "delete_service_record": {
+      "name": "Delete service record",
+      "description": "Deletes a service record and the items and attachment records attached to it.",
+      "fields": {
+        "entry_id": { "name": "Entry ID", "description": "Config entry to target." },
+        "vehicle_id": { "name": "Vehicle ID", "description": "Database vehicle id to target." },
+        "service_record_id": { "name": "Service record ID", "description": "Record to delete." }
+      }
+    },
+    "add_maintenance_item": {
+      "name": "Add maintenance item",
+      "description": "Adds a maintenance item. Use this for custom work that is not in the default list; the category is created automatically if it does not exist.",
+      "fields": {
+        "entry_id": { "name": "Entry ID", "description": "Config entry to target." },
+        "vehicle_id": { "name": "Vehicle ID", "description": "Database vehicle id to target." },
+        "name": { "name": "Name", "description": "Any name you like, for example 'Frunk strut replacement'." },
+        "category": { "name": "Category", "description": "Existing or brand new category." },
+        "service_record_id": { "name": "Service record ID", "description": "Attach to this record. A new record is created when omitted." },
+        "mileage": { "name": "Mileage", "description": "Mileage when completed." },
+        "date_completed": { "name": "Date completed", "description": "Completion date (YYYY-MM-DD)." },
+        "cost": { "name": "Cost", "description": "Cost of the work." },
+        "service_provider": { "name": "Service provider", "description": "Who performed the work." },
+        "notes": { "name": "Notes", "description": "Free-form notes." },
+        "is_custom": { "name": "Custom item", "description": "Flags the item as user defined." },
+        "create_schedule": { "name": "Make recurring", "description": "Also create a recurring schedule for this item." },
+        "interval_miles": { "name": "Mileage interval", "description": "Repeat every this many miles/km." },
+        "interval_days": { "name": "Day interval", "description": "Repeat every this many days." }
+      }
+    },
+    "complete_maintenance": {
+      "name": "Complete maintenance",
+      "description": "Marks maintenance as done, rolls the schedule forward and optionally logs a service record.",
+      "fields": {
+        "entry_id": { "name": "Entry ID", "description": "Config entry to target." },
+        "vehicle_id": { "name": "Vehicle ID", "description": "Database vehicle id to target." },
+        "schedule_id": { "name": "Schedule ID", "description": "Schedule that was completed." },
+        "name": { "name": "Item name", "description": "Item name, when no schedule id is supplied." },
+        "service_date": { "name": "Date", "description": "Completion date." },
+        "mileage": { "name": "Mileage", "description": "Mileage at completion." },
+        "cost": { "name": "Cost", "description": "Cost of the work." },
+        "service_provider": { "name": "Service provider", "description": "Who performed the work." },
+        "notes": { "name": "Notes", "description": "Free-form notes." },
+        "create_service_record": { "name": "Log a service record", "description": "Create a matching service record." }
+      }
+    },
+    "add_schedule": {
+      "name": "Add maintenance schedule",
+      "description": "Creates a recurring maintenance schedule by mileage, time, or both.",
+      "fields": {
+        "entry_id": { "name": "Entry ID", "description": "Config entry to target." },
+        "vehicle_id": { "name": "Vehicle ID", "description": "Database vehicle id to target." },
+        "name": { "name": "Item name", "description": "Name of the recurring item." },
+        "category": { "name": "Category", "description": "Category for the schedule." },
+        "interval_miles": { "name": "Mileage interval", "description": "Repeat every this many miles/km." },
+        "interval_days": { "name": "Day interval", "description": "Repeat every this many days." },
+        "source": { "name": "Source", "description": "Default, User Defined, or Tesla Recommendation. Only choose Tesla Recommendation for intervals you have verified yourself." },
+        "notes": { "name": "Notes", "description": "Free-form notes." },
+        "last_service_date": { "name": "Last service date", "description": "Baseline date. Defaults to today." },
+        "last_service_mileage": { "name": "Last service mileage", "description": "Baseline mileage. Defaults to current mileage." }
+      }
+    },
+    "update_schedule": {
+      "name": "Update maintenance schedule",
+      "description": "Edits a schedule and recalculates when it is next due.",
+      "fields": {
+        "entry_id": { "name": "Entry ID", "description": "Config entry to target." },
+        "vehicle_id": { "name": "Vehicle ID", "description": "Database vehicle id to target." },
+        "schedule_id": { "name": "Schedule ID", "description": "Schedule to update." },
+        "name": { "name": "Item name", "description": "New name." },
+        "category": { "name": "Category", "description": "New category." },
+        "interval_miles": { "name": "Mileage interval", "description": "New mileage interval." },
+        "interval_days": { "name": "Day interval", "description": "New day interval." },
+        "enabled": { "name": "Enabled", "description": "Turn the schedule on or off." },
+        "notes": { "name": "Notes", "description": "New notes." }
+      }
+    },
+    "delete_schedule": {
+      "name": "Delete maintenance schedule",
+      "description": "Deletes a maintenance schedule. Service history is not affected.",
+      "fields": {
+        "entry_id": { "name": "Entry ID", "description": "Config entry to target." },
+        "vehicle_id": { "name": "Vehicle ID", "description": "Database vehicle id to target." },
+        "schedule_id": { "name": "Schedule ID", "description": "Schedule to delete." }
+      }
+    },
+    "reset_maintenance_schedule": {
+      "name": "Reset maintenance schedule",
+      "description": "Resets a schedule's baseline without creating a service record.",
+      "fields": {
+        "entry_id": { "name": "Entry ID", "description": "Config entry to target." },
+        "vehicle_id": { "name": "Vehicle ID", "description": "Database vehicle id to target." },
+        "schedule_id": { "name": "Schedule ID", "description": "Schedule to reset." },
+        "service_date": { "name": "Date", "description": "New baseline date." },
+        "mileage": { "name": "Mileage", "description": "New baseline mileage." }
+      }
+    },
+    "add_attachment": {
+      "name": "Add attachment",
+      "description": "Copies a receipt, photo or document into the attachments folder and links it to a service record.",
+      "fields": {
+        "entry_id": { "name": "Entry ID", "description": "Config entry to target." },
+        "vehicle_id": { "name": "Vehicle ID", "description": "Database vehicle id to target." },
+        "file_path": { "name": "File path", "description": "Path to a JPG, PNG, WEBP or PDF that Home Assistant can read." },
+        "service_record_id": { "name": "Service record ID", "description": "Record to attach the file to." }
+      }
+    },
+    "add_category": {
+      "name": "Add category",
+      "description": "Creates a custom maintenance category that persists across restarts.",
+      "fields": {
+        "entry_id": { "name": "Entry ID", "description": "Config entry to target." },
+        "vehicle_id": { "name": "Vehicle ID", "description": "Database vehicle id to target." },
+        "name": { "name": "Name", "description": "Category name, for example 'Ceramic Coating'." }
+      }
+    },
+    "add_tire_record": {
+      "name": "Add tire record",
+      "description": "Records a tire fitted at a wheel position.",
+      "fields": {
+        "entry_id": { "name": "Entry ID", "description": "Config entry to target." },
+        "vehicle_id": { "name": "Vehicle ID", "description": "Database vehicle id to target." },
+        "position": { "name": "Position", "description": "Front Left, Front Right, Rear Left or Rear Right." },
+        "brand": { "name": "Brand", "description": "Tire brand." },
+        "model": { "name": "Model", "description": "Tire model." },
+        "size": { "name": "Size", "description": "Tire size." },
+        "installation_date": { "name": "Installation date", "description": "When the tire was fitted." },
+        "installation_mileage": { "name": "Installation mileage", "description": "Mileage when fitted." },
+        "current_tread_depth": { "name": "Current tread depth", "description": "Measured tread depth in 32nds of an inch." },
+        "original_tread_depth": { "name": "Original tread depth", "description": "New tread depth in 32nds of an inch." },
+        "dot_date": { "name": "DOT date", "description": "DOT manufacture code." },
+        "purchase_cost": { "name": "Purchase cost", "description": "What the tire cost." },
+        "replacement_cost": { "name": "Replacement cost", "description": "Expected replacement cost." },
+        "notes": { "name": "Notes", "description": "Free-form notes." }
+      }
+    },
+    "add_brake_record": {
+      "name": "Add brake record",
+      "description": "Records a brake inspection result for one axle.",
+      "fields": {
+        "entry_id": { "name": "Entry ID", "description": "Config entry to target." },
+        "vehicle_id": { "name": "Vehicle ID", "description": "Database vehicle id to target." },
+        "axle": { "name": "Axle", "description": "Front or Rear." },
+        "condition": { "name": "Condition", "description": "Good, Fair, Needs Service or Replace." },
+        "pad_thickness": { "name": "Pad thickness", "description": "Measured pad thickness in millimetres." },
+        "rotor_condition": { "name": "Rotor condition", "description": "Free-form rotor condition." },
+        "inspection_date": { "name": "Inspection date", "description": "When the inspection happened." },
+        "inspection_mileage": { "name": "Inspection mileage", "description": "Mileage at inspection." },
+        "notes": { "name": "Notes", "description": "Free-form notes." }
+      }
+    },
+    "set_mileage": {
+      "name": "Set mileage",
+      "description": "Sets the stored mileage. Useful for manual mileage mode and for corrections.",
+      "fields": {
+        "entry_id": { "name": "Entry ID", "description": "Config entry to target." },
+        "vehicle_id": { "name": "Vehicle ID", "description": "Database vehicle id to target." },
+        "mileage": { "name": "Mileage", "description": "The odometer reading to store." }
+      }
+    },
+    "search_service_records": {
+      "name": "Search service records",
+      "description": "Searches service history. The query matches note contents as well as titles, providers and item names.",
+      "fields": {
+        "entry_id": { "name": "Entry ID", "description": "Config entry to target." },
+        "vehicle_id": { "name": "Vehicle ID", "description": "Database vehicle id to target." },
+        "query": { "name": "Search text", "description": "Text to look for, including inside notes." },
+        "year": { "name": "Year", "description": "Limit to one calendar year." },
+        "category": { "name": "Category", "description": "Limit to one category." },
+        "service_provider": { "name": "Provider", "description": "Limit to one provider." },
+        "name": { "name": "Item name", "description": "Limit to one maintenance item." },
+        "min_cost": { "name": "Minimum cost", "description": "Lowest total cost to include." },
+        "max_cost": { "name": "Maximum cost", "description": "Highest total cost to include." },
+        "sort": { "name": "Sort", "description": "newest, oldest, highest_cost, lowest_cost, highest_mileage or lowest_mileage." },
+        "limit": { "name": "Limit", "description": "Maximum number of records to return." }
+      }
+    },
+    "export_data": {
+      "name": "Export data",
+      "description": "Writes a JSON or CSV export, including notes and custom items, to the exports folder.",
+      "fields": {
+        "entry_id": { "name": "Entry ID", "description": "Config entry to target." },
+        "vehicle_id": { "name": "Vehicle ID", "description": "Database vehicle id to target." },
+        "format": { "name": "Format", "description": "json or csv." },
+        "all_vehicles": { "name": "All vehicles", "description": "Export every vehicle instead of just this one." }
+      }
+    },
+    "import_data": {
+      "name": "Import data",
+      "description": "Restores a JSON export. The file is validated first, and existing records are never overwritten.",
+      "fields": {
+        "entry_id": { "name": "Entry ID", "description": "Config entry to target." },
+        "vehicle_id": { "name": "Vehicle ID", "description": "Database vehicle id to target." },
+        "file_path": { "name": "File path", "description": "Path to a JSON export file." },
+        "mode": { "name": "Mode", "description": "merge or skip_duplicates." }
+      }
+    },
+    "backup_database": {
+      "name": "Back up database",
+      "description": "Writes a consistent copy of the maintenance database to the backups folder.",
+      "fields": {
+        "entry_id": { "name": "Entry ID", "description": "Config entry to target." },
+        "vehicle_id": { "name": "Vehicle ID", "description": "Database vehicle id to target." }
+      }
+    }
+  }
+}

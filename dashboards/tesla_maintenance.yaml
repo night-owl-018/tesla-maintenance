@@ -1,0 +1,440 @@
+##############################################################################
+# Tesla Maintenance - mobile-first dashboard
+#
+# Add via Settings > Dashboards > Add Dashboard > New dashboard from scratch,
+# then open the three-dot menu > Raw configuration editor and paste this file.
+#
+# Replace the entity prefix `test_tesla` / `my_tesla` with your own vehicle's
+# slug. If your vehicle is named "Model Y", entities are sensor.model_y_*.
+#
+# Everything here uses built-in cards only - no custom card dependencies.
+# Status is conveyed with text and icons as well as colour.
+##############################################################################
+
+title: Tesla Maintenance
+views:
+  # ------------------------------------------------------------------ OVERVIEW
+  - title: Overview
+    path: overview
+    icon: mdi:car-info
+    type: sections
+    max_columns: 2
+    sections:
+      - type: grid
+        cards:
+          - type: markdown
+            content: >-
+              # {{ state_attr('sensor.my_tesla_current_mileage', 'friendly_name')
+              | default('Tesla', true) | replace('Current mileage', '') }}
+
+              ## {{ states('sensor.my_tesla_current_mileage') | int(0) }}
+              {{ state_attr('sensor.my_tesla_current_mileage',
+              'unit_of_measurement') | default('mi', true) }}
+
+              {% set health = states('sensor.my_tesla_maintenance_health') %}
+              {% if health == 'GOOD' %}✅ **MAINTENANCE HEALTH: GOOD**
+              {% elif health == 'NEEDS ATTENTION' %}⚠️ **MAINTENANCE HEALTH:
+              NEEDS ATTENTION**
+              {% elif health == 'OVERDUE' %}⛔ **MAINTENANCE HEALTH: OVERDUE**
+              {% else %}❔ **MAINTENANCE HEALTH: UNKNOWN** — add a maintenance
+              schedule to start tracking.
+              {% endif %}
+
+              {% if not is_state('binary_sensor.my_tesla_tesla_telemetry_connected',
+              'on') %}
+              ---
+              ⚠️ **Tesla telemetry unavailable.** Mileage shown is the last known
+              reading. Your maintenance history, notes and attachments are
+              unaffected.
+              {% endif %}
+
+          - type: glance
+            show_state: true
+            columns: 2
+            entities:
+              - entity: sensor.my_tesla_next_service_mileage
+                name: Next service
+              - entity: sensor.my_tesla_maintenance_items_due
+                name: Due soon
+              - entity: sensor.my_tesla_maintenance_items_overdue
+                name: Overdue
+              - entity: sensor.my_tesla_total_maintenance_cost
+                name: Total spent
+
+      - type: grid
+        cards:
+          - type: markdown
+            title: Upcoming maintenance
+            content: >-
+              {% set items = state_attr('sensor.my_tesla_maintenance_health',
+              'schedules') %}
+              {% if not items %}
+              No maintenance schedules yet. Add one with the
+              `tesla_maintenance.add_schedule` action.
+              {% else %}
+              {% for item in items[:6] %}
+              {% if item.status == 'OVERDUE' %}⛔{% elif item.status in ['DUE',
+              'DUE_SOON'] %}⚠️{% elif item.status == 'DISABLED' %}⏸{% else %}✅{%
+              endif %} **{{ item.item_name }}** — {{ item.status | replace('_',
+              ' ') | title }}
+              {% if item.miles_remaining is not none %}· {{
+              item.miles_remaining | round(0) }} mi{% endif %}
+              {% if item.days_remaining is not none %}· {{ item.days_remaining
+              }} days{% endif %}
+              *(source: {{ item.source }})*
+
+              {% endfor %}
+              {% endif %}
+
+          - type: markdown
+            title: Recent service
+            content: >-
+              {% set date = states('sensor.my_tesla_last_service_date') %}
+              {% if date in ['unknown', 'unavailable', ''] %}
+              No service records yet. Use **Add Service** below.
+              {% else %}
+              **{{ as_timestamp(date) | timestamp_custom('%b %d, %Y') }}** ·
+              {{ states('sensor.my_tesla_last_service_mileage') | int(0) }} mi
+
+              {{ state_attr('sensor.my_tesla_last_service_date', 'title') }} ·
+              ${{ state_attr('sensor.my_tesla_last_service_date', 'total_cost')
+              | float(0) | round(2) }}
+
+              {% set note = state_attr('sensor.my_tesla_last_service_date',
+              'notes') %}
+              {% if note %}> "{{ note }}"{% endif %}
+              {% endif %}
+
+      - type: grid
+        cards:
+          - type: entities
+            title: Quick actions
+            entities:
+              - entity: button.my_tesla_refresh_maintenance_data
+              - entity: number.my_tesla_manual_mileage
+              - entity: button.my_tesla_export_json
+              - entity: button.my_tesla_export_csv
+              - entity: button.my_tesla_back_up_database
+
+  # ------------------------------------------------------------ MAINTENANCE DUE
+  - title: Due
+    path: due
+    icon: mdi:wrench-clock
+    type: sections
+    sections:
+      - type: grid
+        cards:
+          - type: markdown
+            title: Overdue
+            content: >-
+              {% set items = state_attr('sensor.my_tesla_maintenance_items_overdue',
+              'items') %}
+              {% if not items %}
+              ✅ Nothing overdue.
+              {% else %}
+              {% for item in items %}
+              ⛔ **{{ item.item_name }}** ({{ item.category }})
+              {% if item.miles_remaining is not none %}Overdue by {{
+              (item.miles_remaining * -1) | round(0) }} mi{% endif %}
+              {% if item.days_remaining is not none %}Overdue by {{
+              item.days_remaining * -1 }} days{% endif %}
+              *(source: {{ item.source }})*
+              {% if item.notes %}> {{ item.notes }}{% endif %}
+
+              {% endfor %}
+              {% endif %}
+
+          - type: markdown
+            title: Due soon
+            content: >-
+              {% set items = state_attr('sensor.my_tesla_maintenance_items_due',
+              'items') %}
+              {% if not items %}
+              ✅ Nothing due soon.
+              {% else %}
+              {% for item in items %}
+              ⚠️ **{{ item.item_name }}** ({{ item.category }})
+              {% if item.miles_remaining is not none %}Due in {{
+              item.miles_remaining | round(0) }} mi{% endif %}
+              {% if item.days_remaining is not none %}Due in {{
+              item.days_remaining }} days{% endif %}
+              *(source: {{ item.source }})*
+
+              {% endfor %}
+              {% endif %}
+
+      - type: grid
+        cards:
+          - type: calendar
+            title: Maintenance calendar
+            initial_view: listWeek
+            entities:
+              - calendar.my_tesla_upcoming_maintenance
+
+  # -------------------------------------------------------------- SERVICE HISTORY
+  - title: History
+    path: history
+    icon: mdi:history
+    type: sections
+    sections:
+      - type: grid
+        cards:
+          - type: markdown
+            content: >-
+              ## Service history
+
+              **{{ states('sensor.my_tesla_total_service_records') }}** records ·
+              first service {{
+              state_attr('sensor.my_tesla_total_service_records',
+              'first_service_date') | default('n/a', true) }} · average {{
+              state_attr('sensor.my_tesla_total_service_records',
+              'average_service_cost') | default('n/a', true) }}
+
+              To browse, search or filter the full history (including note
+              contents), run the **Search service records** action from
+              *Developer tools > Actions*, or use the search script in
+              `dashboards/examples/add_service_form_package.yaml`.
+
+          - type: entities
+            title: Latest record
+            entities:
+              - entity: sensor.my_tesla_last_service_date
+                name: Date
+              - entity: sensor.my_tesla_last_service_mileage
+                name: Mileage
+            footer:
+              type: graph
+              entity: sensor.my_tesla_total_maintenance_cost
+
+          - type: markdown
+            title: Detailed service record
+            content: >-
+              {% set record = state_attr('sensor.my_tesla_last_service_date',
+              'title') %}
+              {% if not record %}
+              No records yet.
+              {% else %}
+              ### General information
+              | | |
+              |---|---|
+              | Date | {{ states('sensor.my_tesla_last_service_date') }} |
+              | Mileage | {{ states('sensor.my_tesla_last_service_mileage') }} |
+              | Cost | ${{ state_attr('sensor.my_tesla_last_service_date',
+              'total_cost') }} |
+              | Provider | {{ state_attr('sensor.my_tesla_last_service_date',
+              'provider') | default('—', true) }} |
+
+              ### Brake & tire condition
+              Tires: {{ states('sensor.my_tesla_tire_condition') }} ·
+              Brakes: {{ states('sensor.my_tesla_brake_condition') }}
+
+              ### Notes
+              {{ state_attr('sensor.my_tesla_last_service_date', 'notes') |
+              default('No notes recorded.', true) }}
+              {% endif %}
+
+  # ------------------------------------------------------------------ ANALYTICS
+  - title: Analytics
+    path: analytics
+    icon: mdi:chart-box
+    type: sections
+    sections:
+      - type: grid
+        cards:
+          - type: glance
+            title: Cost summary
+            columns: 2
+            entities:
+              - entity: sensor.my_tesla_total_maintenance_cost
+                name: Lifetime
+              - entity: sensor.my_tesla_maintenance_cost_this_year
+                name: This year
+              - entity: sensor.my_tesla_average_annual_maintenance_cost
+                name: Avg / year
+              - entity: sensor.my_tesla_cost_per_mile
+                name: Per mile
+
+          - type: markdown
+            title: Cost by category
+            content: >-
+              {% set data = state_attr('sensor.my_tesla_total_maintenance_cost',
+              'cost_by_category') %}
+              {% if not data %}
+              Not enough data yet.
+              {% else %}
+              | Category | Cost |
+              |---|---:|
+              {% for name, value in data.items() %}| {{ name }} | ${{ value }} |
+              {% endfor %}
+              {% endif %}
+
+          - type: markdown
+            title: Cost by provider
+            content: >-
+              {% set data = state_attr('sensor.my_tesla_total_maintenance_cost',
+              'cost_by_provider') %}
+              {% if not data %}
+              Not enough data yet.
+              {% else %}
+              | Provider | Cost |
+              |---|---:|
+              {% for name, value in data.items() %}| {{ name }} | ${{ value }} |
+              {% endfor %}
+              {% endif %}
+
+          - type: markdown
+            title: Maintenance over time
+            content: >-
+              {% set by_year = state_attr('sensor.my_tesla_total_maintenance_cost',
+              'cost_by_year') %}
+              {% set by_month =
+              state_attr('sensor.my_tesla_maintenance_cost_this_year',
+              'cost_by_month') %}
+              {% if not by_year %}
+              Not enough data yet.
+              {% else %}
+              **Annual**
+
+              | Year | Cost |
+              |---|---:|
+              {% for name, value in by_year.items() %}| {{ name }} | ${{ value }} |
+              {% endfor %}
+
+              **Monthly**
+
+              | Month | Cost |
+              |---|---:|
+              {% for name, value in by_month.items() %}| {{ name }} | ${{ value }} |
+              {% endfor %}
+              {% endif %}
+
+      - type: grid
+        cards:
+          - type: history-graph
+            hours_to_show: 8760
+            entities:
+              - entity: sensor.my_tesla_total_maintenance_cost
+              - entity: sensor.my_tesla_current_mileage
+
+  # ---------------------------------------------------------------------- TIRES
+  - title: Tires
+    path: tires
+    icon: mdi:tire
+    type: sections
+    sections:
+      - type: grid
+        cards:
+          - type: markdown
+            title: Fitted tires
+            content: >-
+              Overall condition: **{{ states('sensor.my_tesla_tire_condition') }}**
+
+              {% set tires = state_attr('sensor.my_tesla_tire_condition', 'tires') %}
+              {% if not tires %}
+              No tire records yet. Add one with the
+              `tesla_maintenance.add_tire_record` action.
+              {% else %}
+              {% for tire in tires %}
+              **{{ tire.position }}** — {{ tire.brand }} {{ tire.model }} {{ tire.size }}
+              Tread: {{ tire.current_tread_depth | default('—', true) }} /
+              {{ tire.original_tread_depth | default('—', true) }} (32nds) ·
+              Fitted {{ tire.installation_date | default('—', true) }} at
+              {{ tire.installation_mileage | default('—', true) }} mi ·
+              DOT {{ tire.dot_date | default('—', true) }} ·
+              ${{ tire.purchase_cost }}
+              {% if tire.notes %}> {{ tire.notes }}{% endif %}
+
+              {% endfor %}
+              {% endif %}
+
+              *Tread figures are only what you have recorded. No tire-life
+              predictions are estimated.*
+
+  # --------------------------------------------------------------------- BRAKES
+  - title: Brakes
+    path: brakes
+    icon: mdi:car-brake-alert
+    type: sections
+    sections:
+      - type: grid
+        cards:
+          - type: markdown
+            title: Brake condition
+            content: >-
+              Worst recorded condition: **{{
+              states('sensor.my_tesla_brake_condition') }}**
+
+              {% set axles = state_attr('sensor.my_tesla_brake_condition', 'axles') %}
+              {% if not axles %}
+              No brake inspections recorded yet. Add one with the
+              `tesla_maintenance.add_brake_record` action.
+              {% else %}
+              {% for axle, record in axles.items() %}
+              **{{ axle }} axle** — {{ record.condition }}
+              Pad thickness: {{ record.pad_thickness | default('—', true) }} mm ·
+              Rotors: {{ record.rotor_condition | default('—', true) }} ·
+              Inspected {{ record.inspection_date | default('—', true) }} at
+              {{ record.inspection_mileage | default('—', true) }} mi
+              {% if record.notes %}> {{ record.notes }}{% endif %}
+
+              {% endfor %}
+              {% endif %}
+
+  # ------------------------------------------------------------------- SETTINGS
+  - title: Settings
+    path: settings
+    icon: mdi:cog
+    type: sections
+    sections:
+      - type: grid
+        cards:
+          - type: markdown
+            title: System status
+            content: >-
+              | System | Status |
+              |---|---|
+              | Tesla telemetry | {% if
+              is_state('binary_sensor.my_tesla_tesla_telemetry_connected', 'on')
+              %}✅ Available{% else %}⚠️ Unavailable{% endif %} |
+              | Maintenance database | ✅ Available |
+              | Maintenance history | ✅ Available |
+              | Notes | ✅ Available |
+              | Attachments | ✅ Available |
+              | Manual mileage | ✅ Available |
+
+              Mileage source: **{{
+              state_attr('sensor.my_tesla_current_mileage', 'mileage_source') }}**
+
+              ### Optional Tesla entities
+              {% set optional = state_attr('sensor.my_tesla_tesla_telemetry',
+              'optional_entities') %}
+              {% if optional %}
+              {% for key, item in optional.items() %}
+              {% if item.status == 'Connected' %}✓{% elif item.status ==
+              'Unavailable' %}⚠️{% else %}—{% endif %} {{ item.label }}: {{
+              item.status }}
+
+              {% endfor %}
+              {% endif %}
+
+          - type: entities
+            title: Data management
+            entities:
+              - entity: button.my_tesla_export_json
+              - entity: button.my_tesla_export_csv
+              - entity: button.my_tesla_back_up_database
+              - entity: number.my_tesla_manual_mileage
+            footer:
+              type: buttons
+              entities:
+                - entity: button.my_tesla_refresh_maintenance_data
+
+          - type: markdown
+            content: >-
+              Change vehicle details, Tesla entity mapping, mileage source,
+              units, currency, thresholds or notifications under
+              **Settings → Devices & Services → Tesla Maintenance Tracker →
+              Configure**.
+
+              Changing configuration never deletes maintenance records, notes,
+              costs or attachments.

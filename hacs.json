@@ -1,0 +1,6 @@
+{
+  "name": "Tesla Maintenance Tracker",
+  "render_readme": true,
+  "homeassistant": "2025.1.0",
+  "hacs": "1.34.0"
+}

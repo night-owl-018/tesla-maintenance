@@ -1,0 +1,17 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+*.egg-info/
+.DS_Store
+
+# User data must never be committed. The integration writes everything to
+# <config>/tesla_maintenance/, which is outside this repository, but ignore
+# database artefacts defensively in case anyone copies one in.
+*.db
+*.db-wal
+*.db-shm

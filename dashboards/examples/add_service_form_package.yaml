@@ -1,0 +1,300 @@
+##############################################################################
+# Add Service / Add Custom Maintenance - working mobile form
+#
+# Lovelace cannot render an arbitrary form, so this package builds one out of
+# standard helpers plus scripts that call the Tesla Maintenance actions.
+#
+# Install:
+#   1. In configuration.yaml add:   homeassistant:\n     packages: !include_dir_named packages
+#   2. Copy this file to  <config>/packages/tesla_maintenance_forms.yaml
+#   3. Restart Home Assistant.
+#   4. Add the Lovelace view at the bottom of this file to your dashboard.
+#
+# Replace `my_tesla` in the entity ids with your own vehicle slug.
+##############################################################################
+
+input_text:
+  tm_service_provider:
+    name: Service provider
+    max: 100
+    icon: mdi:store
+  tm_location:
+    name: Location
+    max: 100
+    icon: mdi:map-marker
+  tm_title:
+    name: Title
+    max: 100
+    icon: mdi:format-title
+  tm_notes:
+    name: Notes
+    max: 255
+    icon: mdi:note-text
+  tm_custom_item:
+    name: Custom maintenance name
+    max: 100
+    icon: mdi:wrench
+  tm_custom_category:
+    name: Category (new or existing)
+    max: 60
+    icon: mdi:shape
+  tm_search:
+    name: Search service history
+    max: 100
+    icon: mdi:magnify
+
+input_number:
+  tm_mileage:
+    name: Mileage
+    min: 0
+    max: 2000000
+    step: 1
+    mode: box
+    icon: mdi:counter
+  tm_labor_cost:
+    name: Labor cost
+    min: 0
+    max: 100000
+    step: 0.01
+    mode: box
+    icon: mdi:cash
+  tm_parts_cost:
+    name: Parts cost
+    min: 0
+    max: 100000
+    step: 0.01
+    mode: box
+    icon: mdi:cash
+  tm_custom_cost:
+    name: Cost
+    min: 0
+    max: 100000
+    step: 0.01
+    mode: box
+    icon: mdi:cash
+  tm_interval_miles:
+    name: Repeat every (miles)
+    min: 0
+    max: 200000
+    step: 250
+    mode: box
+    icon: mdi:road-variant
+  tm_interval_days:
+    name: Repeat every (days)
+    min: 0
+    max: 3650
+    step: 1
+    mode: box
+    icon: mdi:calendar-refresh
+
+input_datetime:
+  tm_service_date:
+    name: Date
+    has_date: true
+    has_time: false
+
+input_boolean:
+  tm_item_tire_rotation:
+    name: Tire Rotation
+    icon: mdi:tire
+  tm_item_brake_inspection:
+    name: Brake Inspection
+    icon: mdi:car-brake-alert
+  tm_item_brake_service:
+    name: Brake Service
+    icon: mdi:car-brake-abs
+  tm_item_battery_inspection:
+    name: Battery Inspection
+    icon: mdi:car-battery
+  tm_item_cabin_filter:
+    name: Cabin Air Filter
+    icon: mdi:air-filter
+  tm_item_wiper_blades:
+    name: Wiper Blades
+    icon: mdi:wiper
+  tm_custom_recurring:
+    name: Recurring maintenance
+    icon: mdi:calendar-refresh
+
+script:
+  # ---------------------------------------------------------------------------
+  tm_save_service_record:
+    alias: SAVE SERVICE RECORD
+    icon: mdi:content-save-outline
+    mode: single
+    sequence:
+      - action: tesla_maintenance.add_service_record
+        data:
+          service_date: "{{ states('input_datetime.tm_service_date') }}"
+          mileage: "{{ states('input_number.tm_mileage') | float(0) }}"
+          title: "{{ states('input_text.tm_title') }}"
+          service_provider: "{{ states('input_text.tm_service_provider') }}"
+          location: "{{ states('input_text.tm_location') }}"
+          labor_cost: "{{ states('input_number.tm_labor_cost') | float(0) }}"
+          parts_cost: "{{ states('input_number.tm_parts_cost') | float(0) }}"
+          notes: "{{ states('input_text.tm_notes') }}"
+        response_variable: created
+      - repeat:
+          for_each: >-
+            {{ [
+              {'name': 'Tire Rotation', 'category': 'Tires', 'on': is_state('input_boolean.tm_item_tire_rotation','on')},
+              {'name': 'Brake Inspection', 'category': 'Brakes', 'on': is_state('input_boolean.tm_item_brake_inspection','on')},
+              {'name': 'Brake Service', 'category': 'Brakes', 'on': is_state('input_boolean.tm_item_brake_service','on')},
+              {'name': 'Battery Inspection', 'category': 'Battery', 'on': is_state('input_boolean.tm_item_battery_inspection','on')},
+              {'name': 'Cabin Air Filter', 'category': 'Filters', 'on': is_state('input_boolean.tm_item_cabin_filter','on')},
+              {'name': 'Wiper Blades', 'category': 'Exterior', 'on': is_state('input_boolean.tm_item_wiper_blades','on')}
+            ] | selectattr('on') | list }}
+          sequence:
+            - action: tesla_maintenance.add_maintenance_item
+              data:
+                service_record_id: "{{ created.service_record_id }}"
+                name: "{{ repeat.item.name }}"
+                category: "{{ repeat.item.category }}"
+                is_custom: false
+      - action: script.tm_reset_service_form
+
+  # ---------------------------------------------------------------------------
+  tm_save_custom_maintenance:
+    alias: SAVE CUSTOM MAINTENANCE
+    icon: mdi:wrench-plus
+    mode: single
+    sequence:
+      - action: tesla_maintenance.add_maintenance_item
+        data:
+          name: "{{ states('input_text.tm_custom_item') }}"
+          category: >-
+            {{ states('input_text.tm_custom_category') | default('Other', true) }}
+          date_completed: "{{ states('input_datetime.tm_service_date') }}"
+          mileage: "{{ states('input_number.tm_mileage') | float(0) }}"
+          cost: "{{ states('input_number.tm_custom_cost') | float(0) }}"
+          service_provider: "{{ states('input_text.tm_service_provider') }}"
+          notes: "{{ states('input_text.tm_notes') }}"
+          is_custom: true
+          create_schedule: "{{ is_state('input_boolean.tm_custom_recurring', 'on') }}"
+          interval_miles: >-
+            {{ (states('input_number.tm_interval_miles') | int(0)) or none }}
+          interval_days: >-
+            {{ (states('input_number.tm_interval_days') | int(0)) or none }}
+      - action: script.tm_reset_service_form
+
+  # ---------------------------------------------------------------------------
+  tm_search_history:
+    alias: SEARCH SERVICE HISTORY
+    icon: mdi:magnify
+    mode: single
+    sequence:
+      - action: tesla_maintenance.search_service_records
+        data:
+          query: "{{ states('input_text.tm_search') }}"
+          limit: 25
+        response_variable: results
+      - action: persistent_notification.create
+        data:
+          title: "Service history: {{ results.count }} match(es)"
+          message: >-
+            {% if results.count == 0 %}Nothing matched that search.
+            {% else %}{% for record in results.records %}
+            **{{ record.service_date }}** · {{ record.mileage | default('—') }} mi ·
+            ${{ record.total_cost }} · {{ record.service_provider }}
+            {{ record.title }}
+            {% if record.notes %}> {{ record.notes }}{% endif %}
+            {% endfor %}{% endif %}
+
+  tm_reset_service_form:
+    alias: Reset the service form
+    icon: mdi:backup-restore
+    mode: single
+    sequence:
+      - action: input_boolean.turn_off
+        target:
+          entity_id:
+            - input_boolean.tm_item_tire_rotation
+            - input_boolean.tm_item_brake_inspection
+            - input_boolean.tm_item_brake_service
+            - input_boolean.tm_item_battery_inspection
+            - input_boolean.tm_item_cabin_filter
+            - input_boolean.tm_item_wiper_blades
+            - input_boolean.tm_custom_recurring
+      - action: input_text.set_value
+        target:
+          entity_id:
+            - input_text.tm_title
+            - input_text.tm_notes
+            - input_text.tm_custom_item
+        data:
+          value: ""
+      - action: input_number.set_value
+        target:
+          entity_id:
+            - input_number.tm_labor_cost
+            - input_number.tm_parts_cost
+            - input_number.tm_custom_cost
+        data:
+          value: 0
+
+##############################################################################
+# Lovelace view to paste into your dashboard
+##############################################################################
+# - title: Add Service
+#   path: add-service
+#   icon: mdi:plus-box
+#   type: sections
+#   sections:
+#     - type: grid
+#       cards:
+#         - type: entities
+#           title: Add service record
+#           entities:
+#             - input_datetime.tm_service_date
+#             - input_number.tm_mileage
+#             - input_text.tm_title
+#             - input_text.tm_service_provider
+#             - input_text.tm_location
+#             - input_number.tm_labor_cost
+#             - input_number.tm_parts_cost
+#             - type: section
+#               label: Items serviced
+#             - input_boolean.tm_item_battery_inspection
+#             - input_boolean.tm_item_brake_inspection
+#             - input_boolean.tm_item_brake_service
+#             - input_boolean.tm_item_tire_rotation
+#             - input_boolean.tm_item_cabin_filter
+#             - input_boolean.tm_item_wiper_blades
+#             - type: section
+#               label: Notes
+#             - input_text.tm_notes
+#         - type: button
+#           name: SAVE SERVICE RECORD
+#           icon: mdi:content-save
+#           tap_action:
+#             action: perform-action
+#             perform_action: script.tm_save_service_record
+#     - type: grid
+#       cards:
+#         - type: entities
+#           title: + Add Custom Maintenance
+#           entities:
+#             - input_text.tm_custom_item
+#             - input_text.tm_custom_category
+#             - input_number.tm_custom_cost
+#             - input_boolean.tm_custom_recurring
+#             - input_number.tm_interval_miles
+#             - input_number.tm_interval_days
+#         - type: button
+#           name: SAVE MAINTENANCE
+#           icon: mdi:wrench-plus
+#           tap_action:
+#             action: perform-action
+#             perform_action: script.tm_save_custom_maintenance
+#     - type: grid
+#       cards:
+#         - type: entities
+#           title: Search history (searches notes too)
+#           entities:
+#             - input_text.tm_search
+#         - type: button
+#           name: SEARCH
+#           icon: mdi:magnify
+#           tap_action:
+#             action: perform-action
+#             perform_action: script.tm_search_history

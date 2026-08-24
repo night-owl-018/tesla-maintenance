@@ -1,0 +1,5 @@
+# Pinned to the Home Assistant version this integration was developed and
+# tested against. pytest-homeassistant-custom-component pulls in a matching
+# homeassistant release automatically.
+pytest-homeassistant-custom-component==0.13.201
+ruff==0.8.4
