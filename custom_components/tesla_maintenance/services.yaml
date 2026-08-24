@@ -673,3 +673,216 @@ backup_database:
   fields:
     entry_id: *id001
     vehicle_id: *id002
+get_data:
+  fields:
+    entry_id: &id003
+      required: false
+      selector:
+        text: null
+    vehicle_id: &id004
+      required: false
+      selector:
+        number:
+          min: 1
+          max: 9999
+          mode: box
+    history_limit:
+      required: false
+      default: 50
+      selector:
+        number:
+          min: 1
+          max: 500
+          mode: box
+get_service_record:
+  fields:
+    entry_id: *id003
+    vehicle_id: *id004
+    service_record_id:
+      required: true
+      selector:
+        number:
+          min: 1
+          max: 999999
+          mode: box
+update_maintenance_item:
+  fields:
+    entry_id: *id003
+    vehicle_id: *id004
+    item_id:
+      required: true
+      selector:
+        number:
+          min: 1
+          max: 999999
+          mode: box
+    name:
+      required: false
+      selector:
+        text: null
+    category:
+      required: false
+      selector:
+        text: null
+    cost:
+      required: false
+      selector:
+        number:
+          min: 0
+          max: 100000
+          mode: box
+          step: 0.01
+    mileage:
+      required: false
+      selector:
+        number:
+          min: 0
+          max: 2000000
+          mode: box
+    date_completed:
+      required: false
+      selector:
+        date: null
+    notes:
+      required: false
+      selector:
+        text:
+          multiline: true
+delete_maintenance_item:
+  fields:
+    entry_id: *id003
+    vehicle_id: *id004
+    item_id:
+      required: true
+      selector:
+        number:
+          min: 1
+          max: 999999
+          mode: box
+update_tire_record:
+  fields:
+    entry_id: *id003
+    vehicle_id: *id004
+    tire_id:
+      required: true
+      selector:
+        number:
+          min: 1
+          max: 999999
+          mode: box
+    position:
+      required: false
+      selector:
+        select:
+          options:
+          - Front Left
+          - Front Right
+          - Rear Left
+          - Rear Right
+    brand:
+      required: false
+      selector:
+        text: null
+    model:
+      required: false
+      selector:
+        text: null
+    size:
+      required: false
+      selector:
+        text: null
+    current_tread_depth:
+      required: false
+      selector:
+        number:
+          min: 0
+          max: 20
+          mode: box
+          step: 0.5
+    purchase_cost:
+      required: false
+      selector:
+        number:
+          min: 0
+          max: 10000
+          mode: box
+          step: 0.01
+    active:
+      required: false
+      selector:
+        boolean: null
+    notes:
+      required: false
+      selector:
+        text:
+          multiline: true
+delete_tire_record:
+  fields:
+    entry_id: *id003
+    vehicle_id: *id004
+    tire_id:
+      required: true
+      selector:
+        number:
+          min: 1
+          max: 999999
+          mode: box
+update_brake_record:
+  fields:
+    entry_id: *id003
+    vehicle_id: *id004
+    brake_id:
+      required: true
+      selector:
+        number:
+          min: 1
+          max: 999999
+          mode: box
+    condition:
+      required: false
+      selector:
+        select:
+          options:
+          - Good
+          - Fair
+          - Needs Service
+          - Replace
+    pad_thickness:
+      required: false
+      selector:
+        number:
+          min: 0
+          max: 30
+          mode: box
+          step: 0.1
+    rotor_condition:
+      required: false
+      selector:
+        text: null
+    notes:
+      required: false
+      selector:
+        text:
+          multiline: true
+delete_brake_record:
+  fields:
+    entry_id: *id003
+    vehicle_id: *id004
+    brake_id:
+      required: true
+      selector:
+        number:
+          min: 1
+          max: 999999
+          mode: box
+delete_category:
+  fields:
+    entry_id: *id003
+    vehicle_id: *id004
+    category_id:
+      required: true
+      selector:
+        number:
+          min: 1
+          max: 999999
+          mode: box
