@@ -248,6 +248,17 @@ SERVICE_EXPORT_DATA: Final = "export_data"
 SERVICE_IMPORT_DATA: Final = "import_data"
 SERVICE_BACKUP_DATABASE: Final = "backup_database"
 
+# Read/write services used by the Lovelace card
+SERVICE_GET_DATA: Final = "get_data"
+SERVICE_GET_SERVICE_RECORD: Final = "get_service_record"
+SERVICE_UPDATE_MAINTENANCE_ITEM: Final = "update_maintenance_item"
+SERVICE_DELETE_MAINTENANCE_ITEM: Final = "delete_maintenance_item"
+SERVICE_UPDATE_TIRE_RECORD: Final = "update_tire_record"
+SERVICE_DELETE_TIRE_RECORD: Final = "delete_tire_record"
+SERVICE_UPDATE_BRAKE_RECORD: Final = "update_brake_record"
+SERVICE_DELETE_BRAKE_RECORD: Final = "delete_brake_record"
+SERVICE_DELETE_CATEGORY: Final = "delete_category"
+
 # Service call attribute names
 ATTR_VEHICLE_ID: Final = "vehicle_id"
 ATTR_ENTRY_ID: Final = "entry_id"
@@ -279,6 +290,11 @@ ATTR_YEAR: Final = "year"
 ATTR_SORT: Final = "sort"
 ATTR_LIMIT: Final = "limit"
 ATTR_MODE: Final = "mode"
+ATTR_ITEM_ID: Final = "item_id"
+ATTR_TIRE_ID: Final = "tire_id"
+ATTR_BRAKE_ID: Final = "brake_id"
+ATTR_CATEGORY_ID: Final = "category_id"
+ATTR_COST: Final = "cost"
 
 EXPORT_FORMAT_JSON: Final = "json"
 EXPORT_FORMAT_CSV: Final = "csv"
@@ -305,3 +321,6 @@ SORT_OPTIONS: Final = [
 
 #: Fired when maintenance data changes so dashboards/automations can react.
 EVENT_DATA_CHANGED: Final = f"{DOMAIN}_data_changed"
+IMPORT_MODE_MERGE: Final = "merge"
+IMPORT_MODE_SKIP_DUPLICATES: Final = "skip_duplicates"
+IMPORT_MODES: Final = [IMPORT_MODE_MERGE, IMPORT_MODE_SKIP_DUPLICATES]
