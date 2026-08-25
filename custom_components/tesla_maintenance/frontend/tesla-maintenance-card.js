@@ -10,7 +10,7 @@
  *   history_limit: 50      # optional
  */
 
-const VERSION = "1.1.0";
+const VERSION = "1.2.1";
 
 const STATUS_META = {
   OVERDUE: { label: "Overdue", icon: "⛔", cls: "st-overdue" },
@@ -181,20 +181,29 @@ class TeslaMaintenanceCard extends HTMLElement {
     const d = this._data;
     root.innerHTML = `
       <div class="head">
-        <div>
-          <div class="title">${esc(d.vehicle.name)}</div>
-          <div class="sub">${num(d.current_mileage)} ${esc(d.distance_unit)}
-            ${d.telemetry_available ? "" : '<span class="warn">· telemetry offline</span>'}
+        <div class="head-main">
+          <div class="title-row">
+            <div class="title">${esc(d.vehicle.name)}</div>
+            <div class="health ${this._healthClass(d.health)}">
+              <span class="health-dot"></span>${esc(d.health)}
+            </div>
+          </div>
+          <div class="sub">
+            <span class="sub-mileage">${num(d.current_mileage)} ${esc(d.distance_unit)}</span>
+            ${
+              d.telemetry_available
+                ? ""
+                : '<span class="pill pill-warn">Telemetry offline</span>'
+            }
           </div>
         </div>
-        <div class="health ${this._healthClass(d.health)}">${esc(d.health)}</div>
       </div>
       <div class="tabs">
         ${this._tabBtn("overview", "Overview")}
         ${this._tabBtn("schedules", "Schedules")}
         ${this._tabBtn("history", "History")}
         ${this._tabBtn("add", "Add")}
-        ${this._tabBtn("tires", "Tires & Brakes")}
+        ${this._tabBtn("tires", "Tires")}
       </div>
       <div class="body">${this._tabBody()}</div>`;
   }
@@ -227,7 +236,6 @@ class TeslaMaintenanceCard extends HTMLElement {
         return this._viewOverview();
     }
   }
-
   // ----------------------------------------------------------------- views
   _viewOverview() {
     const d = this._data;
@@ -239,7 +247,7 @@ class TeslaMaintenanceCard extends HTMLElement {
 
     return `
       <div class="stats">
-        ${this._stat("Total spent", money(a.total_cost, d.currency))}
+        ${this._stat("Total spent", money(a.total_cost, d.currency), "primary")}
         ${this._stat("This year", money(a.cost_this_year, d.currency))}
         ${this._stat("Records", a.service_count ?? 0)}
         ${this._stat(
@@ -248,25 +256,37 @@ class TeslaMaintenanceCard extends HTMLElement {
         )}
       </div>
 
-      <h3>Needs attention</h3>
+      <div class="section-head">Needs attention</div>
       ${
         attention.length === 0
-          ? `<div class="empty">Nothing due. ✅</div>`
+          ? this._emptyGood("Everything is up to date")
           : attention.map((s) => this._scheduleRow(s, true)).join("")
       }
 
-      <h3>Recent service</h3>
+      <div class="section-head">Recent service</div>
       ${
         recent.length === 0
-          ? `<div class="empty">No service records yet. Use the <b>Add</b> tab.</div>`
+          ? this._emptyState("No service records yet", "Use the Add tab to log your first one.")
           : recent.map((r) => this._recordRow(r)).join("")
       }`;
   }
 
-  _stat(label, value) {
-    return `<div class="stat"><div class="lbl">${esc(label)}</div><div class="val">${esc(
-      value
-    )}</div></div>`;
+  _emptyGood(message) {
+    return `<div class="empty empty-good"><span class="check-icon"></span>${esc(message)}</div>`;
+  }
+
+  _emptyState(title, subtitle) {
+    return `<div class="empty">
+      <div class="empty-title">${esc(title)}</div>
+      ${subtitle ? `<div class="empty-sub">${esc(subtitle)}</div>` : ""}
+    </div>`;
+  }
+
+  _stat(label, value, variant) {
+    return `<div class="stat ${variant === "primary" ? "stat-primary" : ""}">
+      <div class="lbl">${esc(label)}</div>
+      <div class="val">${esc(value)}</div>
+    </div>`;
   }
 
   _viewSchedules() {
@@ -326,14 +346,16 @@ class TeslaMaintenanceCard extends HTMLElement {
     return `
       <div class="item">
         <div class="item-main">
-          <div class="item-title"><span class="dot ${meta.cls}">${meta.icon}</span> ${esc(
-            s.item_name
-          )}</div>
-          <div class="item-sub">${esc(meta.label)}${
-            bits.length ? " · " + esc(bits.join(" or ")) : ""
-          } · <span class="tag">${esc(s.category || "")}</span> <span class="src">${esc(
-            s.source || ""
-          )}</span></div>
+          <div class="item-title">
+            <span class="status-dot ${meta.cls}"></span>${esc(s.item_name)}
+          </div>
+          <div class="item-sub">
+            <span class="status-label ${meta.cls}">${esc(meta.label)}</span>${
+              bits.length ? " · " + esc(bits.join(" or ")) : ""
+            }
+            <span class="tag">${esc(s.category || "")}</span>
+            <span class="src">${esc(s.source || "")}</span>
+          </div>
           ${s.notes ? `<div class="note">${esc(s.notes)}</div>` : ""}
         </div>
         ${
@@ -341,8 +363,8 @@ class TeslaMaintenanceCard extends HTMLElement {
             ? `<div class="item-actions"><button class="btn sm ok" data-act="complete" data-id="${s.schedule_id}">Done</button></div>`
             : `<div class="item-actions">
                  <button class="btn sm ok" data-act="complete" data-id="${s.schedule_id}">Done</button>
-                 <button class="btn sm" data-act="edit-schedule" data-id="${s.schedule_id}">Edit</button>
-                 <button class="btn sm danger" data-act="del-schedule" data-id="${s.schedule_id}">Delete</button>
+                 <button class="btn sm ghost" data-act="edit-schedule" data-id="${s.schedule_id}">Edit</button>
+                 <button class="btn sm ghost danger" data-act="del-schedule" data-id="${s.schedule_id}">Delete</button>
                </div>`
         }
       </div>`;
@@ -441,8 +463,8 @@ class TeslaMaintenanceCard extends HTMLElement {
           }
         </div>
         <div class="item-actions">
-          <button class="btn sm" data-act="edit-record" data-id="${r.id}">Edit</button>
-          <button class="btn sm danger" data-act="del-record" data-id="${r.id}">Delete</button>
+          <button class="btn sm ghost" data-act="edit-record" data-id="${r.id}">Edit</button>
+          <button class="btn sm ghost danger" data-act="del-record" data-id="${r.id}">Delete</button>
         </div>
         ${open ? this._recordDetail(r) : ""}
       </div>`;
@@ -487,8 +509,8 @@ class TeslaMaintenanceCard extends HTMLElement {
                            ${i.notes ? `<div class="note">${esc(i.notes)}</div>` : ""}
                          </div>
                          <div class="item-actions">
-                           <button class="btn sm" data-act="edit-item" data-id="${i.id}">Edit</button>
-                           <button class="btn sm danger" data-act="del-item" data-id="${i.id}">Delete</button>
+                           <button class="btn sm ghost" data-act="edit-item" data-id="${i.id}">Edit</button>
+                           <button class="btn sm ghost danger" data-act="del-item" data-id="${i.id}">Delete</button>
                          </div>
                        </div>`
                 )
@@ -636,7 +658,7 @@ class TeslaMaintenanceCard extends HTMLElement {
   _viewTires() {
     const d = this._data;
     return `
-      <h3>Tires</h3>
+      <div class="section-head">Tires</div>
       ${
         (d.tires || []).length === 0
           ? `<div class="empty">No tire records yet.</div>`
@@ -659,8 +681,8 @@ class TeslaMaintenanceCard extends HTMLElement {
                          ${t.notes ? `<div class="note">${esc(t.notes)}</div>` : ""}
                        </div>
                        <div class="item-actions">
-                         <button class="btn sm" data-act="edit-tire" data-id="${t.id}">Edit</button>
-                         <button class="btn sm danger" data-act="del-tire" data-id="${t.id}">Delete</button>
+                         <button class="btn sm ghost" data-act="edit-tire" data-id="${t.id}">Edit</button>
+                         <button class="btn sm ghost danger" data-act="del-tire" data-id="${t.id}">Delete</button>
                        </div>
                      </div>`
               )
@@ -679,7 +701,7 @@ class TeslaMaintenanceCard extends HTMLElement {
         <div class="rowbtns"><button class="btn primary" data-act="save-tire">Add tire</button></div>
       </div>
 
-      <h3>Brakes</h3>
+      <div class="section-head">Brakes</div>
       ${
         (d.brakes || []).length === 0
           ? `<div class="empty">No brake inspections yet.</div>`
@@ -698,8 +720,8 @@ class TeslaMaintenanceCard extends HTMLElement {
                          ${b.notes ? `<div class="note">${esc(b.notes)}</div>` : ""}
                        </div>
                        <div class="item-actions">
-                         <button class="btn sm" data-act="edit-brake" data-id="${b.id}">Edit</button>
-                         <button class="btn sm danger" data-act="del-brake" data-id="${b.id}">Delete</button>
+                         <button class="btn sm ghost" data-act="edit-brake" data-id="${b.id}">Edit</button>
+                         <button class="btn sm ghost danger" data-act="del-brake" data-id="${b.id}">Delete</button>
                        </div>
                      </div>`
               )
@@ -821,6 +843,7 @@ class TeslaMaintenanceCard extends HTMLElement {
         return this._paint();
       case "open-record":
         this._openRecord = this._openRecord === id ? null : id;
+        this._tab = "history";
         return this._paint();
 
       case "new-schedule":
@@ -862,6 +885,7 @@ class TeslaMaintenanceCard extends HTMLElement {
 
       case "edit-record":
         this._editing = { kind: "record", id };
+        this._tab = "history";
         return this._paint();
       case "save-record":
         return this._act("update_service_record", {
@@ -1050,127 +1074,280 @@ class TeslaMaintenanceCard extends HTMLElement {
   // ----------------------------------------------------------------- styles
   _css() {
     return `
-      :host { --tm-gap: 12px; }
+      :host {
+        --tm-radius: 14px;
+        --tm-radius-sm: 10px;
+        --tm-gap: 10px;
+        --tm-good: #22c55e;
+        --tm-warn: #f59e0b;
+        --tm-bad: #ef4444;
+        --tm-muted: #8a8f98;
+      }
+      * { box-sizing: border-box; }
       ha-card { padding: 0; overflow: hidden; }
-      .pad { padding: 16px; }
+      .pad { padding: 20px; }
       .muted { color: var(--secondary-text-color); }
-      .head {
-        display: flex; align-items: center; justify-content: space-between;
-        gap: 12px; padding: 16px 16px 8px;
-      }
-      .title { font-size: 1.4rem; font-weight: 600; line-height: 1.2; }
-      .sub { color: var(--secondary-text-color); font-size: .9rem; margin-top: 2px; }
-      .warn { color: var(--warning-color, #ffa726); }
-      .health {
-        padding: 6px 12px; border-radius: 999px; font-size: .75rem;
-        font-weight: 700; letter-spacing: .04em; white-space: nowrap;
-      }
-      .st-ok { background: rgba(76,175,80,.16); color: #4caf50; }
-      .st-due, .st-soon { background: rgba(255,167,38,.16); color: #ffa726; }
-      .st-overdue { background: rgba(244,67,54,.16); color: #f44336; }
-      .st-off { background: rgba(158,158,158,.16); color: #9e9e9e; }
 
+      /* ---------- header ---------- */
+      .head {
+        padding: 20px 20px 14px;
+        border-bottom: 1px solid var(--divider-color);
+      }
+      .head-main { display: flex; flex-direction: column; gap: 6px; }
+      .title-row {
+        display: flex; align-items: center; justify-content: space-between;
+        gap: 12px; flex-wrap: wrap;
+      }
+      .title {
+        font-size: 1.5rem; font-weight: 700; line-height: 1.2;
+        letter-spacing: -0.01em;
+      }
+      .sub {
+        display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+        font-size: .92rem; color: var(--secondary-text-color);
+      }
+      .sub-mileage { font-weight: 600; color: var(--primary-text-color); }
+
+      .health {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 5px 12px 5px 10px; border-radius: 999px;
+        font-size: .72rem; font-weight: 700; letter-spacing: .04em;
+        white-space: nowrap; text-transform: uppercase;
+      }
+      .health-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+      .st-ok { background: color-mix(in srgb, var(--tm-good) 15%, transparent); color: var(--tm-good); }
+      .st-due, .st-soon { background: color-mix(in srgb, var(--tm-warn) 16%, transparent); color: var(--tm-warn); }
+      .st-overdue { background: color-mix(in srgb, var(--tm-bad) 15%, transparent); color: var(--tm-bad); }
+      .st-off { background: color-mix(in srgb, var(--tm-muted) 18%, transparent); color: var(--tm-muted); }
+
+      .pill {
+        display: inline-flex; align-items: center; padding: 3px 10px;
+        border-radius: 999px; font-size: .72rem; font-weight: 600;
+      }
+      .pill-warn { background: color-mix(in srgb, var(--tm-warn) 16%, transparent); color: var(--tm-warn); }
+      .pill-muted { background: color-mix(in srgb, var(--tm-muted) 16%, transparent); color: var(--tm-muted); }
+
+      /* ---------- tabs ---------- */
       .tabs {
-        display: flex; gap: 4px; padding: 4px 8px; overflow-x: auto;
+        display: flex; flex-wrap: wrap; gap: 2px; padding: 6px 12px 0;
         border-bottom: 1px solid var(--divider-color);
       }
       .tab {
         flex: 0 0 auto; background: none; border: none; cursor: pointer;
-        padding: 10px 12px; font-size: .9rem; color: var(--secondary-text-color);
-        border-bottom: 2px solid transparent; font-family: inherit;
+        padding: 10px 14px; font-size: .88rem; font-weight: 500;
+        color: var(--secondary-text-color); border-bottom: 2px solid transparent;
+        font-family: inherit; border-radius: 8px 8px 0 0; transition: color .15s;
       }
-      .tab.on { color: var(--primary-color); border-bottom-color: var(--primary-color); font-weight: 600; }
-      .body { padding: 12px 16px 20px; }
-      h3 { font-size: .8rem; text-transform: uppercase; letter-spacing: .06em;
-           color: var(--secondary-text-color); margin: 18px 0 8px; }
+      .tab:hover { color: var(--primary-text-color); }
+      .tab.on {
+        color: var(--primary-color); border-bottom-color: var(--primary-color);
+        font-weight: 700;
+      }
 
+      .body { padding: 18px 20px 24px; }
+      .section-head {
+        font-size: .72rem; font-weight: 700; text-transform: uppercase;
+        letter-spacing: .07em; color: var(--secondary-text-color);
+        margin: 22px 0 10px;
+      }
+      .section-head:first-child { margin-top: 0; }
+
+      /* ---------- stat grid ---------- */
       .stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
-      .stat { background: var(--secondary-background-color); border-radius: 12px; padding: 12px; }
-      .stat .lbl { font-size: .72rem; color: var(--secondary-text-color); text-transform: uppercase; letter-spacing: .05em; }
-      .stat .val { font-size: 1.15rem; font-weight: 600; margin-top: 4px; }
+      .stat {
+        background: var(--secondary-background-color); border-radius: var(--tm-radius-sm);
+        padding: 14px; border: 1px solid transparent;
+      }
+      .stat-primary {
+        background: color-mix(in srgb, var(--primary-color) 10%, var(--secondary-background-color));
+        border-color: color-mix(in srgb, var(--primary-color) 25%, transparent);
+      }
+      .stat .lbl {
+        font-size: .68rem; font-weight: 600; color: var(--secondary-text-color);
+        text-transform: uppercase; letter-spacing: .05em;
+      }
+      .stat .val { font-size: 1.3rem; font-weight: 700; margin-top: 5px; letter-spacing: -0.01em; }
 
+      /* ---------- rows / cards ---------- */
       .item {
-        display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px;
-        padding: 12px; border-radius: 12px; margin-bottom: 8px;
+        display: flex; flex-wrap: wrap; align-items: flex-start; gap: 10px;
+        padding: 14px; border-radius: var(--tm-radius-sm); margin-bottom: 8px;
+        background: var(--secondary-background-color);
+        border: 1px solid transparent; transition: border-color .15s;
+      }
+      .item.open { border-color: var(--primary-color); }
+      .item-main { flex: 1 1 200px; min-width: 0; cursor: pointer; }
+      .item-title {
+        display: flex; align-items: center; gap: 8px;
+        font-weight: 600; font-size: .96rem;
+      }
+      .item-sub {
+        display: flex; align-items: center; flex-wrap: wrap; gap: 6px;
+        font-size: .82rem; color: var(--secondary-text-color); margin-top: 4px;
+      }
+      .item-actions { display: flex; gap: 6px; flex-wrap: wrap; align-self: center; }
+
+      .status-dot {
+        width: 9px; height: 9px; border-radius: 50%; flex: 0 0 auto;
+        background: currentColor;
+      }
+      .status-dot.st-ok { color: var(--tm-good); }
+      .status-dot.st-due, .status-dot.st-soon { color: var(--tm-warn); }
+      .status-dot.st-overdue { color: var(--tm-bad); }
+      .status-dot.st-off { color: var(--tm-muted); }
+
+      .status-label { font-weight: 600; }
+      .status-label.st-ok { color: var(--tm-good); }
+      .status-label.st-due, .status-label.st-soon { color: var(--tm-warn); }
+      .status-label.st-overdue { color: var(--tm-bad); }
+      .status-label.st-off { color: var(--tm-muted); }
+
+      .tag {
+        display: inline-flex; align-items: center; font-size: .68rem;
+        font-weight: 600; padding: 2px 8px; border-radius: 999px;
+        background: color-mix(in srgb, var(--tm-muted) 16%, transparent);
+        color: var(--secondary-text-color);
+      }
+      .tag.custom {
+        background: color-mix(in srgb, var(--primary-color) 16%, transparent);
+        color: var(--primary-color);
+      }
+      .src { font-size: .72rem; opacity: .7; font-style: italic; }
+      .note {
+        font-size: .85rem; margin-top: 8px; padding: 8px 10px;
+        border-radius: 8px; background: var(--card-background-color);
+        color: var(--primary-text-color); line-height: 1.4;
+      }
+
+      /* ---------- empty states ---------- */
+      .empty {
+        padding: 18px; text-align: center; border-radius: var(--tm-radius-sm);
         background: var(--secondary-background-color);
       }
-      .item.open { outline: 1px solid var(--primary-color); }
-      .item-main { flex: 1 1 200px; min-width: 0; cursor: pointer; }
-      .item-title { font-weight: 600; }
-      .item-sub { font-size: .82rem; color: var(--secondary-text-color); margin-top: 3px; }
-      .item-actions { display: flex; gap: 6px; flex-wrap: wrap; }
-      .dot { margin-right: 4px; }
-      .tag {
-        display: inline-block; font-size: .7rem; padding: 1px 7px; border-radius: 999px;
-        background: rgba(127,127,127,.2); margin-left: 4px;
+      .empty-good {
+        display: flex; align-items: center; justify-content: center; gap: 8px;
+        color: var(--tm-good); font-weight: 600; font-size: .9rem;
       }
-      .tag.custom { background: rgba(33,150,243,.2); color: #2196f3; }
-      .src { font-size: .7rem; opacity: .75; margin-left: 4px; font-style: italic; }
-      .note {
-        font-size: .82rem; margin-top: 6px; padding-left: 8px;
-        border-left: 2px solid var(--divider-color); color: var(--primary-text-color);
+      .check-icon {
+        width: 18px; height: 18px; border-radius: 50%; flex: 0 0 auto;
+        background: var(--tm-good); position: relative;
       }
-      .empty { padding: 14px; text-align: center; color: var(--secondary-text-color);
-               background: var(--secondary-background-color); border-radius: 12px; }
-      .empty.sm { padding: 8px; font-size: .85rem; }
+      .check-icon::after {
+        content: ""; position: absolute; left: 5px; top: 3px;
+        width: 5px; height: 9px; border: solid white;
+        border-width: 0 2px 2px 0; transform: rotate(45deg);
+      }
+      .empty-title { font-weight: 600; font-size: .92rem; }
+      .empty-sub { font-size: .82rem; color: var(--secondary-text-color); margin-top: 4px; }
+      .empty.sm { padding: 10px; font-size: .85rem; }
 
-      .detail { flex: 1 1 100%; margin-top: 10px; padding-top: 10px;
-                border-top: 1px solid var(--divider-color); }
-      .kv { display: flex; justify-content: space-between; padding: 4px 0; font-size: .88rem; }
+      /* ---------- detail panel ---------- */
+      .detail {
+        flex: 1 1 100%; margin-top: 12px; padding-top: 14px;
+        border-top: 1px solid var(--divider-color);
+      }
+      .kv { display: flex; justify-content: space-between; padding: 5px 0; font-size: .88rem; }
       .kv span { color: var(--secondary-text-color); }
-      .sec { font-size: .72rem; text-transform: uppercase; letter-spacing: .06em;
-             color: var(--secondary-text-color); margin: 14px 0 6px; }
-      .subitem { display: flex; justify-content: space-between; align-items: flex-start;
-                 gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--divider-color); }
-      .notes-box { background: var(--card-background-color); border-radius: 8px;
-                   padding: 10px; font-size: .88rem; white-space: pre-wrap; }
-
-      .form { background: var(--secondary-background-color); border-radius: 12px;
-              padding: 14px; margin-bottom: 14px; }
-      .form-title { font-weight: 600; margin-bottom: 10px; }
-      .hint { font-size: .78rem; color: var(--secondary-text-color); margin-bottom: 10px; }
-      .f { display: block; margin-bottom: 10px; }
-      .f span { display: block; font-size: .76rem; color: var(--secondary-text-color);
-                margin-bottom: 4px; }
-      .f input, .f select, .f textarea {
-        width: 100%; box-sizing: border-box; padding: 10px; border-radius: 8px;
-        border: 1px solid var(--divider-color); background: var(--card-background-color);
-        color: var(--primary-text-color); font-family: inherit; font-size: .95rem;
+      .sec {
+        font-size: .68rem; font-weight: 700; text-transform: uppercase;
+        letter-spacing: .06em; color: var(--secondary-text-color);
+        margin: 16px 0 8px;
       }
-      .lbl2 { font-size: .76rem; color: var(--secondary-text-color); margin: 12px 0 6px; }
-      .checks { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 4px; }
-      .check { display: flex; align-items: center; gap: 8px; padding: 8px 0; font-size: .9rem; cursor: pointer; }
-      .check input { width: 18px; height: 18px; }
+      .subitem {
+        display: flex; justify-content: space-between; align-items: flex-start;
+        gap: 8px; padding: 10px 0; border-bottom: 1px solid var(--divider-color);
+      }
+      .subitem:last-child { border-bottom: none; }
+      .notes-box {
+        background: var(--card-background-color); border-radius: 10px;
+        padding: 12px; font-size: .88rem; white-space: pre-wrap; line-height: 1.5;
+      }
 
-      .search { width: 100%; box-sizing: border-box; padding: 10px 12px; margin-bottom: 12px;
-                border-radius: 999px; border: 1px solid var(--divider-color);
-                background: var(--card-background-color); color: var(--primary-text-color);
-                font-family: inherit; font-size: .95rem; }
+      /* ---------- forms ---------- */
+      .form {
+        background: var(--secondary-background-color); border-radius: var(--tm-radius);
+        padding: 16px; margin-bottom: 14px;
+      }
+      .form-title { font-weight: 700; font-size: 1rem; margin-bottom: 12px; }
+      .hint { font-size: .8rem; color: var(--secondary-text-color); margin-bottom: 12px; line-height: 1.4; }
+      .f { display: block; margin-bottom: 12px; }
+      .f span {
+        display: block; font-size: .76rem; font-weight: 600;
+        color: var(--secondary-text-color); margin-bottom: 5px;
+      }
+      .f input, .f select, .f textarea {
+        width: 100%; box-sizing: border-box; padding: 10px 12px; border-radius: 9px;
+        border: 1px solid var(--divider-color); background: var(--card-background-color);
+        color: var(--primary-text-color); font-family: inherit; font-size: .92rem;
+        transition: border-color .15s;
+      }
+      .f input:focus, .f select:focus, .f textarea:focus {
+        outline: none; border-color: var(--primary-color);
+      }
+      .lbl2 {
+        font-size: .76rem; font-weight: 600; color: var(--secondary-text-color);
+        margin: 14px 0 8px;
+      }
+      .checks { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 2px; }
+      .check {
+        display: flex; align-items: center; gap: 9px; padding: 7px 0;
+        font-size: .9rem; cursor: pointer;
+      }
+      .check input { width: 17px; height: 17px; accent-color: var(--primary-color); }
 
-      .rowbtns { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+      .search {
+        width: 100%; box-sizing: border-box; padding: 11px 16px; margin-bottom: 14px;
+        border-radius: 999px; border: 1px solid var(--divider-color);
+        background: var(--secondary-background-color); color: var(--primary-text-color);
+        font-family: inherit; font-size: .92rem; transition: border-color .15s;
+      }
+      .search:focus { outline: none; border-color: var(--primary-color); }
+
+      /* ---------- buttons ---------- */
+      .rowbtns { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
       .btn {
-        padding: 10px 14px; border-radius: 8px; border: 1px solid var(--divider-color);
+        padding: 10px 16px; border-radius: 10px; border: 1px solid var(--divider-color);
         background: var(--card-background-color); color: var(--primary-text-color);
-        cursor: pointer; font-family: inherit; font-size: .88rem; font-weight: 500;
+        cursor: pointer; font-family: inherit; font-size: .88rem; font-weight: 600;
+        transition: background .15s, border-color .15s, color .15s;
       }
       .btn:hover { background: var(--secondary-background-color); }
-      .btn.sm { padding: 6px 10px; font-size: .8rem; }
-      .btn.primary { background: var(--primary-color); color: var(--text-primary-color, #fff);
-                     border-color: var(--primary-color); }
-      .btn.ok { border-color: #4caf50; color: #4caf50; }
-      .btn.danger { border-color: rgba(244,67,54,.5); color: #f44336; }
-      .err-box { background: rgba(244,67,54,.12); color: #f44336; padding: 12px;
-                 border-radius: 8px; margin-bottom: 12px; }
+      .btn.sm { padding: 7px 12px; font-size: .8rem; }
+      .btn.primary {
+        background: var(--primary-color); color: var(--text-primary-color, #fff);
+        border-color: var(--primary-color);
+      }
+      .btn.primary:hover { filter: brightness(1.08); }
+      .btn.ok { border-color: var(--tm-good); color: var(--tm-good); }
+      .btn.ok:hover { background: color-mix(in srgb, var(--tm-good) 12%, transparent); }
+
+      /* Ghost buttons stay quiet until hovered - destructive actions don't shout. */
+      .btn.ghost {
+        background: transparent; border-color: transparent; color: var(--secondary-text-color);
+      }
+      .btn.ghost:hover { background: var(--card-background-color); color: var(--primary-text-color); }
+      .btn.ghost.danger:hover {
+        background: color-mix(in srgb, var(--tm-bad) 12%, transparent); color: var(--tm-bad);
+      }
+      .btn.danger { border-color: color-mix(in srgb, var(--tm-bad) 45%, transparent); color: var(--tm-bad); }
+      .btn.danger:hover { background: color-mix(in srgb, var(--tm-bad) 12%, transparent); }
+
+      .err-box {
+        background: color-mix(in srgb, var(--tm-bad) 12%, transparent); color: var(--tm-bad);
+        padding: 14px; border-radius: 10px; margin-bottom: 12px; font-size: .9rem;
+      }
 
       .toast {
         position: sticky; bottom: 0; opacity: 0; pointer-events: none;
-        transition: opacity .2s; background: #323232; color: #fff;
-        padding: 12px 16px; margin: 0 16px 12px; border-radius: 8px; font-size: .88rem;
+        transition: opacity .2s, transform .2s; transform: translateY(4px);
+        background: #2b2f36; color: #fff; padding: 12px 18px; margin: 0 20px 16px;
+        border-radius: 10px; font-size: .88rem; font-weight: 500;
+        box-shadow: 0 4px 16px rgba(0,0,0,.25);
       }
-      .toast.show { opacity: 1; }
-      .toast.err { background: #b3261e; }
+      .toast.show { opacity: 1; transform: translateY(0); }
+      .toast.err { background: var(--tm-bad); }
 
-      @media (min-width: 600px) {
+      @media (min-width: 560px) {
         .stats { grid-template-columns: repeat(4, 1fr); }
       }`;
   }
