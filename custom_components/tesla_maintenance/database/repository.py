@@ -361,11 +361,21 @@ class MaintenanceRepository:
                 item.date_completed = record.service_date
             self.add_maintenance_item(item)
 
-        # Recording work also advances any matching schedule.
+        # Recording work also advances any matching schedule. Matching checks
+        # both the item names and the record's own title, since a record can
+        # be logged with a free-text title and no items attached.
+        matched_names = {item.name.lower() for item in items or []}
         for item in items or []:
             self.mark_schedule_serviced(
                 record.vehicle_id,
                 item.name,
+                service_date=record.service_date,
+                mileage=record.mileage,
+            )
+        if record.title and record.title.lower() not in matched_names:
+            self.mark_schedule_serviced(
+                record.vehicle_id,
+                record.title,
                 service_date=record.service_date,
                 mileage=record.mileage,
             )
