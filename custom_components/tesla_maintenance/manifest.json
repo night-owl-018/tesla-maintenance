@@ -1,8 +1,11 @@
-﻿{
+{
   "domain": "tesla_maintenance",
   "name": "Tesla Maintenance Tracker",
   "codeowners": [],
   "config_flow": true,
+  "dependencies": [
+    "http"
+  ],
   "documentation": "https://github.com/night-owl-018/tesla-maintenance",
   "integration_type": "device",
   "iot_class": "local_polling",
@@ -10,4 +13,3 @@
   "requirements": [],
   "version": "1.3.1"
 }
-
