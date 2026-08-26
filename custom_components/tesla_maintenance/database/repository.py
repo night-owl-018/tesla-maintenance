@@ -382,10 +382,6 @@ class MaintenanceRepository:
 
         if record.mileage:
             self.set_current_mileage(record.vehicle_id, float(record.mileage))
-            )
-
-        if record.mileage:
-            self.set_current_mileage(record.vehicle_id, float(record.mileage))
         return record_id
 
     def get_service_record(self, record_id: int) -> ServiceRecord | None:
