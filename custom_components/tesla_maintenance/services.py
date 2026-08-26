@@ -1,4 +1,4 @@
-﻿"""Home Assistant services for the Tesla Maintenance Tracker.
+"""Home Assistant services for the Tesla Maintenance Tracker.
 
 Services are registered once for the integration. Each call resolves a target
 vehicle from ``entry_id`` or ``vehicle_id``; when only one vehicle is set up,
