@@ -1,4 +1,4 @@
-"""Home Assistant services for the Tesla Maintenance Tracker.
+﻿"""Home Assistant services for the Tesla Maintenance Tracker.
 
 Services are registered once for the integration. Each call resolves a target
 vehicle from ``entry_id`` or ``vehicle_id``; when only one vehicle is set up,
@@ -874,6 +874,7 @@ def async_register_services(hass: HomeAssistant) -> None:
             "currency": runtime.coordinator.currency,
             "health": data.health,
             "telemetry_available": data.telemetry_available,
+            "optional_entities": data.optional_entities,
             "statuses": [status.to_dict() for status in data.schedule_statuses],
             **collected,
         }

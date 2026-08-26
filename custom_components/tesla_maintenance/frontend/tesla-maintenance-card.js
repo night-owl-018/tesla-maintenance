@@ -10,7 +10,7 @@
  *   history_limit: 50      # optional
  */
 
-const VERSION = "1.2.1";
+const VERSION = "1.3.0";
 
 const STATUS_META = {
   OVERDUE: { label: "Overdue", icon: "⛔", cls: "st-overdue" },
@@ -30,6 +30,16 @@ const esc = (value) =>
     (char) =>
       ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]
   );
+
+// Escapes first, then applies a tiny, safe markdown subset so notes can carry
+// **bold** and *italic* emphasis. Because escaping runs first, raw HTML typed
+// into a note can never be injected - only these two patterns are recognized.
+const richText = (value) => {
+  let out = esc(value);
+  out = out.replace(/\*\*([^*\n]+)\*\*/g, "<b>$1</b>");
+  out = out.replace(/(?<!\*)\*([^*\n]+)\*(?!\*)/g, "<i>$1</i>");
+  return out;
+};
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -268,7 +278,77 @@ class TeslaMaintenanceCard extends HTMLElement {
         recent.length === 0
           ? this._emptyState("No service records yet", "Use the Add tab to log your first one.")
           : recent.map((r) => this._recordRow(r)).join("")
+      }
+
+      ${this._costBreakdown(a, d.currency)}
+      ${this._telemetryDetails(d)}`;
+  }
+
+  _details(label, bodyHtml) {
+    return `<details class="acc">
+      <summary>${esc(label)}</summary>
+      <div class="acc-body">${bodyHtml}</div>
+    </details>`;
+  }
+
+  _barRow(label, value, max, currency) {
+    const pct = max > 0 ? Math.round((value / max) * 100) : 0;
+    return `<div class="bar-row">
+      <div class="bar-label">${esc(label)}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
+      <div class="bar-value">${esc(money(value, currency))}</div>
+    </div>`;
+  }
+
+  _costBreakdown(a, currency) {
+    const byCategory = Object.entries(a.cost_by_category || {});
+    const byProvider = Object.entries(a.cost_by_provider || {});
+    if (byCategory.length === 0 && byProvider.length === 0) return "";
+
+    const maxCat = Math.max(...byCategory.map(([, v]) => v), 0);
+    const maxProv = Math.max(...byProvider.map(([, v]) => v), 0);
+
+    const body = `
+      ${
+        byCategory.length
+          ? `<div class="lbl2">By category</div>${byCategory
+              .sort((a, b) => b[1] - a[1])
+              .map(([name, value]) => this._barRow(name, value, maxCat, currency))
+              .join("")}`
+          : ""
+      }
+      ${
+        byProvider.length
+          ? `<div class="lbl2">By provider</div>${byProvider
+              .sort((a, b) => b[1] - a[1])
+              .map(([name, value]) => this._barRow(name, value, maxProv, currency))
+              .join("")}`
+          : ""
+      }
+      ${
+        a.average_annual_cost != null
+          ? `<div class="kv"><span>Average per year</span><b>${esc(
+              money(a.average_annual_cost, currency)
+            )}</b></div>`
+          : ""
       }`;
+    return this._details("Cost breakdown", body);
+  }
+
+  _telemetryDetails(d) {
+    const entries = Object.values(d.optional_entities || {});
+    if (entries.length === 0) return "";
+    const body = entries
+      .map((e) => {
+        const cls =
+          e.status === "Connected" ? "st-ok" : e.status === "Unavailable" ? "st-due" : "st-off";
+        return `<div class="kv">
+          <span>${esc(e.label)}</span>
+          <b class="status-label ${cls}">${esc(e.status)}</b>
+        </div>`;
+      })
+      .join("");
+    return this._details("Tesla telemetry entities", body);
   }
 
   _emptyGood(message) {
@@ -356,7 +436,7 @@ class TeslaMaintenanceCard extends HTMLElement {
             <span class="tag">${esc(s.category || "")}</span>
             <span class="src">${esc(s.source || "")}</span>
           </div>
-          ${s.notes ? `<div class="note">${esc(s.notes)}</div>` : ""}
+          ${s.notes ? `<div class="note">${richText(s.notes)}</div>` : ""}
         </div>
         ${
           compact
@@ -506,7 +586,7 @@ class TeslaMaintenanceCard extends HTMLElement {
                            <span class="tag">${esc(i.category)}</span>
                            ${i.is_custom ? '<span class="tag custom">custom</span>' : ""}
                            ${i.cost ? ` · ${esc(money(i.cost, d.currency))}` : ""}
-                           ${i.notes ? `<div class="note">${esc(i.notes)}</div>` : ""}
+                           ${i.notes ? `<div class="note">${richText(i.notes)}</div>` : ""}
                          </div>
                          <div class="item-actions">
                            <button class="btn sm ghost" data-act="edit-item" data-id="${i.id}">Edit</button>
@@ -519,7 +599,7 @@ class TeslaMaintenanceCard extends HTMLElement {
 
         <div class="sec">Notes</div>
         <div class="notes-box">${
-          r.notes ? esc(r.notes) : '<span class="muted">No notes recorded.</span>'
+          r.notes ? richText(r.notes) : '<span class="muted">No notes recorded.</span>'
         }</div>
 
         <div class="sec">Attachments</div>
@@ -678,7 +758,7 @@ class TeslaMaintenanceCard extends HTMLElement {
                          } · ${esc(t.size || "")} · ${esc(
                            money(t.purchase_cost, d.currency)
                          )}</div>
-                         ${t.notes ? `<div class="note">${esc(t.notes)}</div>` : ""}
+                         ${t.notes ? `<div class="note">${richText(t.notes)}</div>` : ""}
                        </div>
                        <div class="item-actions">
                          <button class="btn sm ghost" data-act="edit-tire" data-id="${t.id}">Edit</button>
@@ -717,7 +797,7 @@ class TeslaMaintenanceCard extends HTMLElement {
                          <div class="item-sub">Pads ${b.pad_thickness ?? "—"} mm · ${esc(
                            b.rotor_condition || "—"
                          )} · ${esc(b.inspection_date || "—")}</div>
-                         ${b.notes ? `<div class="note">${esc(b.notes)}</div>` : ""}
+                         ${b.notes ? `<div class="note">${richText(b.notes)}</div>` : ""}
                        </div>
                        <div class="item-actions">
                          <button class="btn sm ghost" data-act="edit-brake" data-id="${b.id}">Edit</button>
@@ -783,7 +863,8 @@ class TeslaMaintenanceCard extends HTMLElement {
 
   _area(id, label, value) {
     return `<label class="f"><span>${esc(label)}</span>
-      <textarea id="${id}" rows="3">${esc(value ?? "")}</textarea></label>`;
+      <textarea id="${id}" rows="3">${esc(value ?? "")}</textarea>
+      <span class="f-hint">**bold** and *italic* are supported</span></label>`;
   }
 
   _select(id, label, options, selected) {
@@ -1217,6 +1298,7 @@ class TeslaMaintenanceCard extends HTMLElement {
         font-size: .85rem; margin-top: 8px; padding: 8px 10px;
         border-radius: 8px; background: var(--card-background-color);
         color: var(--primary-text-color); line-height: 1.4;
+        white-space: pre-wrap;
       }
 
       /* ---------- empty states ---------- */
@@ -1240,6 +1322,36 @@ class TeslaMaintenanceCard extends HTMLElement {
       .empty-title { font-weight: 600; font-size: .92rem; }
       .empty-sub { font-size: .82rem; color: var(--secondary-text-color); margin-top: 4px; }
       .empty.sm { padding: 10px; font-size: .85rem; }
+
+      /* ---------- collapsible sections ---------- */
+      .acc {
+        margin-top: 10px; border-radius: var(--tm-radius-sm);
+        background: var(--secondary-background-color); overflow: hidden;
+      }
+      .acc summary {
+        list-style: none; cursor: pointer; padding: 13px 14px;
+        font-size: .84rem; font-weight: 600; color: var(--primary-text-color);
+        display: flex; align-items: center; justify-content: space-between;
+        user-select: none;
+      }
+      .acc summary::-webkit-details-marker { display: none; }
+      .acc summary::after {
+        content: "›"; font-size: 1.1rem; color: var(--secondary-text-color);
+        transform: rotate(90deg); transition: transform .15s; line-height: 1;
+      }
+      .acc[open] summary::after { transform: rotate(-90deg); }
+      .acc-body { padding: 2px 14px 14px; }
+      .bar-row {
+        display: grid; grid-template-columns: 90px 1fr 64px; align-items: center;
+        gap: 10px; padding: 5px 0; font-size: .82rem;
+      }
+      .bar-label { color: var(--secondary-text-color); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .bar-track {
+        height: 6px; border-radius: 999px; background: var(--card-background-color);
+        overflow: hidden;
+      }
+      .bar-fill { height: 100%; border-radius: 999px; background: var(--primary-color); }
+      .bar-value { text-align: right; font-weight: 600; }
 
       /* ---------- detail panel ---------- */
       .detail {
@@ -1283,6 +1395,10 @@ class TeslaMaintenanceCard extends HTMLElement {
       }
       .f input:focus, .f select:focus, .f textarea:focus {
         outline: none; border-color: var(--primary-color);
+      }
+      .f-hint {
+        display: block; font-size: .7rem; color: var(--secondary-text-color);
+        margin-top: 4px; opacity: .75;
       }
       .lbl2 {
         font-size: .76rem; font-weight: 600; color: var(--secondary-text-color);
